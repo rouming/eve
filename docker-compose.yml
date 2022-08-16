@@ -3,6 +3,8 @@ version: '2.3'
 volumes:
     persist: {}
     config: {}
+    etc: {}
+    proc: {}
     run: {}
     version: {}
 
@@ -44,17 +46,17 @@ services:
             - persist:/persist
             - config:/config
             - type: bind
-              source: CURDIR/conf
+              source: ${CURDIR}/conf
               target: /conf
             - type: bind
-              source: CURDIR/pkg
+              source: ${CURDIR}/pkg
               target: /pkg
         # network_mode: host
         networks:
             - eve
 
     edgeview:
-        image: EDGEVIEW_TAG
+        image: ${EDGEVIEW_TAG}
         privileged: true
         volumes:
             - persist:/persist:ro
@@ -158,13 +160,13 @@ services:
             - config:/config
             - run:/run
             - type: bind
-              source: CURDIR/images/version.yml
+              source: ${CURDIR}/images/version.yml
               target: /opt/zededa/bin/versioninfo
             - type: bind
-              source: CURDIR/images/version.yml
+              source: ${CURDIR}/images/version.yml
               target: /etc/eve-release
             - type: bind
-              source: CURDIR/tools/fake-zboot.sh
+              source: ${CURDIR}/tools/fake-zboot.sh
               target: /usr/bin/zboot
         # network_mode: host
         networks:

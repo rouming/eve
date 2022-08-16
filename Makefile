@@ -415,8 +415,9 @@ run-grub: $(BIOS_IMG) $(UBOOT_IMG) $(EFI_PART) $(DEVICETREE_DTB) $(SWTPM)
 
 run-compose: images/version.yml
 	# we regenerate this on every run, in case things changed
+	mkdir tmp 2> /dev/null || true
 	$(PARSE_PKGS) > tmp/images
-	docker-compose -f docker-compose.yml run storage-init sh -c 'rm -rf /run/* /config/* ; cp -Lr /conf/* /config/ ; echo IMGA > /run/eve.id'
+	docker-compose -f docker-compose.yml --env-file tmp/images run storage-init sh -c 'rm -rf /run/* /config/* ; cp -Lr /conf/* /config/ ; echo IMGA > /run/eve.id'
 	docker-compose -f docker-compose.yml --env-file tmp/images up
 
 run-proxy:
