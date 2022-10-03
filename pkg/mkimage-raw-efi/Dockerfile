@@ -16,8 +16,8 @@ RUN mkdir -p efifs parts root bits config persist opt/pillar opt/debug lib/modul
 COPY make-raw install grub.cfg.in UsbInvocationScript.txt ./
 
 # now lets create an edge container
-# FIXME: 003-installer? why not linuxkit build?
-WORKDIR /eco/media/root-rw/root/containers/onboot/003-installer
+# FIXME: 002-installer? why not linuxkit build?
+WORKDIR /eco/media/root-rw/root/containers/onboot/002-installer
 COPY runtime.json config.json ./
 RUN mv /out rootfs
 # hadolint ignore=DL3003
