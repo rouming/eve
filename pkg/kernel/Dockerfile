@@ -11,17 +11,17 @@ RUN eve-alpine-deploy.sh
 
 # set versions for arm64
 FROM kernel-build-base AS kernel-build-arm64
-ARG KERNEL_VERSION_arm64=5.10.121
+ARG KERNEL_VERSION_arm64=6.0.8
 # this has to be specified separately because of dockerfile limitations
-ARG KERNEL_MAJOR=5
+ARG KERNEL_MAJOR=6
 ENV KERNEL_VERSION=${KERNEL_VERSION_arm64}
 ENV KERNEL_MAJOR=${KERNEL_MAJOR}
 
 # set versions for amd64
 FROM kernel-build-base AS kernel-build-amd64
-ARG KERNEL_VERSION_amd64=5.10.121
+ARG KERNEL_VERSION_amd64=6.0.8
 # this has to be specified separately because of dockerfile limitations
-ARG KERNEL_MAJOR=5
+ARG KERNEL_MAJOR=6
 ENV KERNEL_VERSION=${KERNEL_VERSION_amd64}
 ENV KERNEL_MAJOR=${KERNEL_MAJOR}
 
@@ -57,8 +57,9 @@ RUN gpg2 -q --import keys.asc && \
     cat linux-${KERNEL_VERSION}.tar | tar --absolute-names -x && mv /linux-${KERNEL_VERSION} /linux && \
     rm -rf /out && mkdir /out && echo "KERNEL_SOURCE=${KERNEL_SOURCE}" > /out/kernel-source-info
 
-# Apply local patches
+## Apply local patches
 WORKDIR /linux
+
 RUN set -e ; KERNEL_SERIES=${KERNEL_VERSION%.*}.x; \
     [ ! -d /patches-"${KERNEL_SERIES}" ] || for patch in /patches-"${KERNEL_SERIES}"/*.patch; do \
         echo "Applying $patch"; \
@@ -89,40 +90,42 @@ RUN case $(uname -m) in \
 
 # Prepare built-in ZFS
 #  * ZFS on Linux
-ENV ZFS_VERSION=2.1.2
-ENV ZFS_COMMIT=zfs-${ZFS_VERSION}
-ENV ZFS_REPO=https://github.com/openzfs/zfs
-ENV ZFS_PATCH_DIR=/patches-zfs-"${ZFS_VERSION}"
+#ENV ZFS_VERSION=2.1.2
+#ENV ZFS_COMMIT=zfs-${ZFS_VERSION}
+#ENV ZFS_REPO=https://github.com/openzfs/zfs
+#ENV ZFS_PATCH_DIR=/patches-zfs-"${ZFS_VERSION}"
 
-WORKDIR /tmp/zfs
+#WORKDIR /tmp/zfs
 
-# hadolint ignore=DL3020
-ADD ${ZFS_REPO}/tarball/${ZFS_COMMIT} /zfs.tgz
-RUN tar -zxvf /zfs.tgz --strip-components=1 && \
-    rm /zfs.tgz
-RUN set -e; \
-    if [ ! -d "${ZFS_PATCH_DIR}" ]; then \
-        echo "No such dir ${ZFS_PATCH_DIR}"; \
-    else \
-        for patch in "${ZFS_PATCH_DIR}"/*.patch; do \
-            echo "Applying $patch"; \
-            patch -p1 < "$patch"; \
-        done \
-    fi
-RUN ./autogen.sh && \
-    ./configure \
-        --with-linux=/linux \
-        --with-linux-obj=/linux \
-        --with-config=kernel  \
-        --enable-linux-builtin && \
-    ./scripts/make_gitrev.sh && \
-    ./copy-builtin /linux
+## hadolint ignore=DL3020
+#ADD ${ZFS_REPO}/tarball/${ZFS_COMMIT} /zfs.tgz
+#RUN tar -zxvf /zfs.tgz --strip-components=1 && \
+#    rm /zfs.tgz
+#RUN set -e; \
+#    if [ ! -d "${ZFS_PATCH_DIR}" ]; then \
+#        echo "No such dir ${ZFS_PATCH_DIR}"; \
+#    else \
+#        for patch in "${ZFS_PATCH_DIR}"/*.patch; do \
+#            echo "Applying $patch"; \
+#            patch -p1 < "$patch"; \
+#        done \
+#    fi
+#RUN ./autogen.sh && \
+#    ./configure \
+#        --with-linux=/linux \
+#        --with-linux-obj=/linux \
+#        --with-config=kernel  \
+#        --enable-linux-builtin && \
+#    ./scripts/make_gitrev.sh && \
+#    ./copy-builtin /linux
 
 # Verify kconfig after ZFS is prepared as built-in
 WORKDIR /linux
 RUN make defconfig && \
-    make oldconfig && \
-    diff -cw .config .config.new
+    make oldconfig
+
+#&& \
+#    diff -cw .config .config.new
 
 # Make kernel
 RUN make -j "$(getconf _NPROCESSORS_ONLN)" KCFLAGS="-fno-pie" && \
@@ -146,23 +149,23 @@ RUN make -j "$(getconf _NPROCESSORS_ONLN)" INSTALL_MOD_PATH=/tmp/kernel-modules 
 
 # Out-of-tree, creepy modules
 #  * Maxlinear USB (option #2 https://github.com/lipnitsk/xr/archive/master.zip)
-WORKDIR /linux
-ADD https://www.maxlinear.com/document?id=21651 /tmp/xr.zip
-RUN unzip -d /tmp /tmp/xr.zip ;\
-    make -j "$(getconf _NPROCESSORS_ONLN)" \
-         -C /linux INSTALL_MOD_PATH=/tmp/kernel-modules \
-         M=/tmp/xr_usb_serial_common_lnx-3.6-and-newer-pak \
-         modules modules_install
+#WORKDIR /linux
+#ADD https://www.maxlinear.com/document?id=21651 /tmp/xr.zip
+#RUN unzip -d /tmp /tmp/xr.zip ;\
+#    make -j "$(getconf _NPROCESSORS_ONLN)" \
+#         -C /linux INSTALL_MOD_PATH=/tmp/kernel-modules \
+#         M=/tmp/xr_usb_serial_common_lnx-3.6-and-newer-pak \
+#         modules modules_install
 
-WORKDIR /tmp/rtl8821CU
-ADD https://github.com/brektrou/rtl8821CU/tarball/8c2226a7 /tmp/rtl8821CU.tgz
-RUN tar -zxvf /tmp/rtl8821CU.tgz  --strip-components=1 && \
-    rm /tmp/rtl8821CU.tgz
+#WORKDIR /tmp/rtl8821CU
+#ADD https://github.com/brektrou/rtl8821CU/tarball/8c2226a7 /tmp/rtl8821CU.tgz
+#RUN tar -zxvf /tmp/rtl8821CU.tgz  --strip-components=1 && \
+#    rm /tmp/rtl8821CU.tgz
 
 WORKDIR /linux
-RUN make -j "$(getconf _NPROCESSORS_ONLN)" \
-    -C /tmp/rtl8821CU KSRC=/linux modules && \
-    install -D -p -m 644 /tmp/rtl8821CU/8821cu.ko $(echo /tmp/kernel-modules/lib/modules/*)/kernel/drivers/net/wireless/realtek/rtl8821cu/8821cu.ko
+#RUN make -j "$(getconf _NPROCESSORS_ONLN)" \
+#    -C /tmp/rtl8821CU KSRC=/linux modules && \
+#    install -D -p -m 644 /tmp/rtl8821CU/8821cu.ko $(echo /tmp/kernel-modules/lib/modules/*)/kernel/drivers/net/wireless/realtek/rtl8821cu/8821cu.ko
 
 # Strip at least some of the modules to conserve space
 RUN if [ "$(uname -m)" = aarch64 ];then strip --strip-debug `find /tmp/kernel-modules/lib/modules -name \*.ko` ;fi
