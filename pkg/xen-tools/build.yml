@@ -1,5 +1,6 @@
 image: eve-xen-tools
 org: lfedge
+network: yes
 config:
   binds:
     - /run:/run

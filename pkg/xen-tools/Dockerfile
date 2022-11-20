@@ -3,7 +3,7 @@
 FROM lfedge/eve-uefi:b66d94780b1986e13d4db082adb5630a95911089 as uefi-build
 
 FROM lfedge/eve-alpine:145f062a40639b6c65efa36bed1c5614b873be52 as runx-build
-ENV BUILD_PKGS mkinitfs gcc musl-dev e2fsprogs
+ENV BUILD_PKGS mkinitfs gcc musl-dev e2fsprogs coreutils wget py3-pip
 RUN eve-alpine-deploy.sh
 
 RUN rm -f /sbin/poweroff /etc/mkinitfs/features.d/base.files
@@ -22,7 +22,7 @@ ENV BUILD_PKGS \
     gettext iasl util-linux-dev ncurses-dev glib-dev \
     pixman-dev libaio-dev yajl-dev argp-standalone \
     linux-headers git patch texinfo tar libcap-ng-dev \
-    attr-dev flex bison cmake libusb-dev
+    attr-dev flex bison cmake libusb-dev py3-pip
 ENV BUILD_PKGS_arm64 dtc-dev
 
 ENV PKGS alpine-baselayout musl-utils bash libaio libbz2 glib pixman yajl keyutils libusb xz-libs libuuid sudo
@@ -53,7 +53,7 @@ RUN rm -rf /out/usr/man
 RUN strip /out/usr/lib/* || :
 
 # When changing this version, also update SEABIOS_UPSTREAM_REVISION to whatever is in `Config.mk` in the xen source
-ENV XEN_VERSION 4.15.0
+ENV XEN_VERSION 4.17.0-rc3
 ENV XEN_SOURCE=https://downloads.xenproject.org/release/xen/${XEN_VERSION}/xen-${XEN_VERSION}.tar.gz
 ENV EXTRA_QEMUU_CONFIGURE_ARGS="--enable-libusb --enable-linux-aio \
     --enable-vhost-net --enable-vhost-vsock --enable-vhost-scsi --enable-vhost-kernel \
@@ -80,6 +80,14 @@ ENV SEABIOS_UPSTREAM_REVISION rel-1.14.0
 ADD --keep-git-dir git://xenbits.xen.org/seabios.git#${SEABIOS_UPSTREAM_REVISION} ${SEABIOS_UPSTREAM_URL}
 # we need this because it will complain about ambiguous refs
 RUN git config --global core.warnambiguousrefs false
+
+
+#WORKDIR /tmp
+#RUN wget https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip && \
+#    unzip ninja-linux.zip && \
+#	cp ninja /usr/bin
+
+RUN pip3 install ninja
 
 RUN mkdir -p /out
 
