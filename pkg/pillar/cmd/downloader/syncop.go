@@ -22,7 +22,8 @@ import (
 // Drona APIs for object Download
 func handleSyncOp(ctx *downloaderContext, key string,
 	config types.DownloaderConfig, status *types.DownloaderStatus,
-	dst *types.DatastoreConfig, receiveChan chan<- CancelChannel) {
+	dst *types.DatastoreConfig, dsCtx *types.DatastoreContext,
+	receiveChan chan<- CancelChannel) (bool, string) {
 	var (
 		err                                                    error
 		errStr, locFilename, locDirname, remoteName, serverURL string
@@ -46,26 +47,8 @@ func handleSyncOp(ctx *downloaderContext, key string,
 	locDirname = path.Dir(locFilename)
 	cleanOnError := true
 
-	// construct the datastore context
-	dsCtx, err := constructDatastoreContext(ctx, config.Name, config.NameIsURL, *dst)
-	if err != nil {
-		errStr := fmt.Sprintf("Will retry in %v: %s failed: %s",
-			retryTime, config.Name, err)
-		handleSyncOpResponse(ctx, config, status, locFilename, key,
-			errStr, cancelled, cleanOnError)
-		return
-	}
-
 	// by default the metricsURL _is_ the DownloadURL, but can override in switch
 	metricsURL := dsCtx.DownloadURL
-
-	// update status to DOWNLOADING
-	status.State = types.DOWNLOADING
-	// save the name of the Target filename to our status. In theory, this can be
-	// derived, but it is good for the status to say where it *is*, as opposed to
-	// config, which says where it *should be*
-	status.Target = locFilename
-	publishDownloaderStatus(ctx, status)
 
 	// make sure the directory exists - just a safety check
 	if _, err := os.Stat(locDirname); err != nil {
@@ -189,9 +172,8 @@ func handleSyncOp(ctx *downloaderContext, key string,
 	// and return, but we will get to it later
 	if errStr != "" {
 		log.Errorf("Error preparing to download. All errors:%s", errStr)
-		handleSyncOpResponse(ctx, config, status, locFilename,
+		return handleSyncOpResponse(ctx, config, status, locFilename,
 			key, errStr, cancelled, cleanOnError)
-		return
 	}
 
 	// if the server URL ends with '.local', it is considered to be local data store
@@ -205,9 +187,8 @@ func handleSyncOp(ctx *downloaderContext, key string,
 			err := fmt.Errorf("No IP management port addresses with cost <= %d",
 				downloadMaxPortCost)
 			log.Error(err.Error())
-			handleSyncOpResponse(ctx, config, status, locFilename,
+			return handleSyncOpResponse(ctx, config, status, locFilename,
 				key, err.Error(), cancelled, cleanOnError)
-			return
 		}
 	}
 
@@ -280,10 +261,8 @@ func handleSyncOp(ctx *downloaderContext, key string,
 			log.Noticef("updated sizes at end to %d/%d",
 				size, size)
 		}
-		handleSyncOpResponse(ctx, config, status,
+		return handleSyncOpResponse(ctx, config, status,
 			locFilename, key, "", cancelled, cleanOnError)
-		return
-
 	}
 	// we skip this error earlier but we must fill errStr
 	if errStr == "" {
@@ -293,7 +272,7 @@ func handleSyncOp(ctx *downloaderContext, key string,
 		log.Errorf("All source IP addresses failed. All errors:%s",
 			errStr)
 	}
-	handleSyncOpResponse(ctx, config, status, locFilename,
+	return handleSyncOpResponse(ctx, config, status, locFilename,
 		key, errStr, cancelled, cleanOnError)
 }
 
@@ -309,7 +288,7 @@ func getServerURL(dsCtx *types.DatastoreContext) (string, error) {
 
 func handleSyncOpResponse(ctx *downloaderContext, config types.DownloaderConfig,
 	status *types.DownloaderStatus, locFilename,
-	key, errStr string, cancelled, cleanOnError bool) {
+	key, errStr string, cancelled, cleanOnError bool) (bool, string) {
 
 	// have finished the download operation
 	// based on the result, perform some storage
@@ -320,11 +299,7 @@ func handleSyncOpResponse(ctx *downloaderContext, config types.DownloaderConfig,
 			// Delete downloaded files
 			doDelete(ctx, key, locFilename, status)
 		}
-		status.HandleDownloadFail(errStr, retryTime, cancelled)
-		publishDownloaderStatus(ctx, status)
-		log.Errorf("handleSyncOpResponse(%s): failed with %s",
-			status.Name, errStr)
-		return
+		return cancelled, errStr
 	}
 
 	// make sure the file exists
@@ -333,11 +308,7 @@ func handleSyncOpResponse(ctx *downloaderContext, config types.DownloaderConfig,
 		// Nothing was downloaded? Delete progress files if any
 		doDelete(ctx, key, locFilename, status)
 		errStr := fmt.Sprintf("%v", err)
-		status.HandleDownloadFail(errStr, retryTime, cancelled)
-		publishDownloaderStatus(ctx, status)
-		log.Errorf("handleSyncOpResponse(%s): failed with %s",
-			status.Name, errStr)
-		return
+		return cancelled, errStr
 	}
 
 	err = os.RemoveAll(locFilename + progressFileSuffix)
@@ -348,15 +319,9 @@ func handleSyncOpResponse(ctx *downloaderContext, config types.DownloaderConfig,
 
 	log.Functionf("handleSyncOpResponse(%s): successful <%s>",
 		config.Name, locFilename)
-	// We do not clear any status.RetryCount, Error, etc. The caller
-	// should look at State == DOWNLOADED to determine it is done.
 
-	status.ClearError()
-	status.ModTime = time.Now()
-	status.State = types.DOWNLOADED
-	status.Progress = 100 // Just in case
-	status.ClearPendingStatus()
-	publishDownloaderStatus(ctx, status)
+	// Report success
+	return false, ""
 }
 
 // cloud storage interface functions/APIs
