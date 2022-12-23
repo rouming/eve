@@ -500,13 +500,33 @@ func doDownload(ctx *downloaderContext, config types.DownloaderConfig, status *t
 	status.Target = config.Target
 	publishDownloaderStatus(ctx, status)
 
-	cancelled, errStr := handleSyncOp(ctx, status.Key(), config, status,
-		dslist[0].conf, dslist[0].ctx, receiveChan)
+	// Usually the list has only one entry, but in some cases config can have
+	// fallback datastores, which should be used in case of an error.
+	// Iterate over the list and try each one until success, accumulating
+	// error string for the debug purpose.
+	bigErrStr := ""
+	for i, ds := range dslist {
+		cancelled, errStr := handleSyncOp(ctx, status.Key(), config, status,
+			ds.conf, ds.ctx, receiveChan)
 
-	if errStr != "" {
-		log.Errorf("doDownload(%s): failed with %s", status.Name, errStr)
-		status.HandleDownloadFail(errStr, retryTime, cancelled)
-	} else {
+		if errStr != "" {
+			log.Errorf("doDownload(%s): download from datastore(%s) failed with %s",
+				ds.id, status.Name, errStr)
+			bigErrStr += fmt.Sprintf("%s\n", errStr)
+
+			// Set the accumulated error once all the datastores are tried
+			// or download has been cancelled
+			if cancelled || (i+1) == len(dslist) {
+				if !cancelled {
+					// Use accumulated string if this is the last error
+					errStr = bigErrStr
+				}
+				status.HandleDownloadFail(errStr, retryTime, cancelled)
+				break
+			}
+			continue
+		}
+
 		// We do not clear any status.RetryCount, etc. The caller
 		// should look at State == DOWNLOADED to determine it is done.
 		status.ClearError()
@@ -514,6 +534,9 @@ func doDownload(ctx *downloaderContext, config types.DownloaderConfig, status *t
 		status.State = types.DOWNLOADED
 		status.Progress = 100 // Just in case
 		status.ClearPendingStatus()
+
+		// All good
+		break
 	}
 	publishDownloaderStatus(ctx, status)
 }
