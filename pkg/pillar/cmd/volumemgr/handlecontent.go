@@ -153,6 +153,7 @@ func createContentTreeStatus(ctx *volumemgrContext, config types.ContentTreeConf
 			ContentID:         config.ContentID,
 			DatastoreID:       config.DatastoreID,
 			DatastoreType:     datastoreType,
+			DatastoreIDsList:  config.DatastoreIDsList,
 			RelativeURL:       config.RelativeURL,
 			Format:            config.Format,
 			ContentSha256:     config.ContentSha256,
@@ -181,6 +182,7 @@ func createContentTreeStatus(ctx *volumemgrContext, config types.ContentTreeConf
 				}
 				rootBlob := &types.BlobStatus{
 					DatastoreID:            config.DatastoreID,
+					DatastoreIDsList:       config.DatastoreIDsList,
 					RelativeURL:            config.RelativeURL,
 					Sha256:                 strings.ToLower(config.ContentSha256),
 					Size:                   config.MaxDownloadSize,

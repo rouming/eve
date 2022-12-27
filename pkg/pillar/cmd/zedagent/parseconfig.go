@@ -1638,7 +1638,9 @@ func parseContentTreeConfigList(contentTreeList []types.ContentTreeConfig, drive
 			contentTree.ContentID = nilUUID
 		} else {
 			contentTree.ContentID, _ = uuid.FromString(drive.Image.Uuidandversion.Uuid)
-			contentTree.DatastoreID, _ = uuid.FromString(drive.Image.DsId)
+			id, _ := uuid.FromString(drive.Image.DsId)
+			contentTree.DatastoreID = id
+			contentTree.DatastoreIDsList = append(contentTree.DatastoreIDsList, id)
 			contentTree.RelativeURL = drive.Image.Name
 			contentTree.Format = drive.Image.Iformat
 			contentTree.ContentSha256 = strings.ToLower(drive.Image.Sha256)
