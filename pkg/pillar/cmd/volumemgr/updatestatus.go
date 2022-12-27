@@ -27,12 +27,21 @@ func doUpdateContentTree(ctx *volumemgrContext, status *types.ContentTreeStatus)
 	addedBlobs := []string{}
 
 	if status.State < types.VERIFIED {
-		if status.DatastoreType == "" {
+		if !status.AllDatastoresResolved {
 			log.Functionf("contentTreeStatus(%s) does not have a datastore type yet, deferring", status.ContentID)
 			return false, false
 		}
 
-		if status.IsOCIRegistry() {
+		if status.IsOCIRegistry {
+			if len(status.DatastoreIDList) > 1 {
+				err := fmt.Sprintf("doUpdateContentTree(%s) name %s: OCI registry along with the fallback datastores list is not supported",
+					status.Key(), status.DisplayName)
+				log.Errorf(err)
+				status.SetErrorDescription(types.ErrorDescription{Error: err})
+				changed = true
+				return changed, false
+			}
+
 			maybeLatchContentTreeHash(ctx, status)
 			if status.ContentSha256 == "" {
 				rs := lookupResolveStatus(ctx, status.ResolveKey())
@@ -764,6 +773,42 @@ func updateStatusByBlob(ctx *volumemgrContext, sha ...string) {
 	}
 }
 
+// setDatastoreTypeByID() - sets datastore type looking for a matching datastore by
+//                          an ID. Returns 'true' if all datastore types are resolved
+//                          and datastore ID was found in this particular content tree
+func setDatastoreTypeByID(ds types.DatastoreConfig, status *types.ContentTreeStatus) bool {
+	nr := len(status.DatastoreIDList)
+	found := false
+	nrResolved := 0
+
+	// Find datastore by an ID and count resolved datastores
+	for i, dsid := range status.DatastoreIDList {
+		tptr := &status.DatastoreTypesList[i]
+
+		// Assign a type if datastores's ID matches
+		if dsid == ds.UUID {
+			found = true
+			*tptr = ds.DsType
+
+			// OCI registry is special, so mark the whole status if there is any
+			if ds.DsType == zconfig.DsType_DsContainerRegistry.String() {
+				status.IsOCIRegistry = true
+			}
+
+			log.Functionf("Setting datastore type %s for datastore %s on ContentTreeStatus %s",
+				ds.DsType, ds.UUID, status.Key())
+		}
+
+		// Account resolved datastore
+		if *tptr != "" {
+			nrResolved++
+		}
+	}
+	status.AllDatastoresResolved = (nrResolved == nr)
+
+	return found && status.AllDatastoresResolved
+}
+
 // updateStatusByDatastore update any datastore missing status
 func updateStatusByDatastore(ctx *volumemgrContext, datastore types.DatastoreConfig) {
 	log.Functionf("updateStatusByDatastore(%s)", datastore.UUID)
@@ -772,14 +817,10 @@ func updateStatusByDatastore(ctx *volumemgrContext, datastore types.DatastoreCon
 	for _, st := range items {
 		status := st.(types.ContentTreeStatus)
 
-		// if it does not match the UUID, or it already has the type, ignore it
-		if status.DatastoreID != datastore.UUID || status.DatastoreType != "" {
+		found := setDatastoreTypeByID(datastore, &status)
+		if !found {
 			continue
 		}
-		// set the type
-		log.Functionf("Setting datastore type %s for datastore %s on ContentTreeStatus %s",
-			datastore.DsType, datastore.UUID, status.Key())
-		status.DatastoreType = datastore.DsType
 		if changed, _ := doUpdateContentTree(ctx, &status); changed {
 			log.Functionf("updateStatusByDatastore(%s) publishing ContentTreeStatus",
 				status.Key())
