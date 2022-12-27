@@ -208,13 +208,23 @@ func Run(ps *pubsub.PubSub, loggerArg *logrus.Logger, logArg *base.LogObject, ar
 	}
 }
 
+// lookupDatastore() - does lookup for datastore ID and returns true if found
+func lookupDatastore(dsid_arg uuid.UUID, status types.DownloaderStatus) bool {
+	for _, dsid := range status.DatastoreIDList {
+		if dsid == dsid_arg {
+			return true
+		}
+	}
+	return false
+}
+
 // handle the datastore modification
 func checkAndUpdateDownloadableObjects(ctx *downloaderContext, dsID uuid.UUID) {
 	pub := ctx.pubDownloaderStatus
 	items := pub.GetAll()
 	for _, st := range items {
 		status := st.(types.DownloaderStatus)
-		if status.DatastoreID == dsID {
+		if lookupDatastore(dsID, status) {
 			config := lookupDownloaderConfig(ctx, status.Key())
 			if config != nil {
 				log.Noticef("checkAndUpdateDownloadableObjects updating %s due to datastore %s",
@@ -482,10 +492,8 @@ func doDownload(ctx *downloaderContext, config types.DownloaderConfig, status *t
 		return
 	}
 
-	//TODO: will be used the real list of IDS in the following patches
-	dsids := []uuid.UUID{config.DatastoreID}
-
-	dslist, err := prepareDatastoresList(ctx, config, dsids)
+	// Prepare list of datastore contexts and configs
+	dslist, err := prepareDatastoresList(ctx, config, config.DatastoreIDList)
 	if err != nil {
 		errStr := fmt.Sprintf("Retry download in %v: %s failed: %s",
 			retryTime, config.Name, err)
