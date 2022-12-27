@@ -274,18 +274,20 @@ func getBlobChildren(ctx *volumemgrContext, blob *types.BlobStatus) []*types.Blo
 		if existingChild == nil {
 			return []*types.BlobStatus{
 				{
-					DatastoreID:            blob.DatastoreID,
-					RelativeURL:            replaceSha(blob.RelativeURL, manifest.Digest),
-					Sha256:                 strings.ToLower(manifest.Digest.Hex),
-					Size:                   uint64(manifest.Size),
-					LastRefCountChangeTime: time.Now(),
-					State:                  types.INITIAL,
+					DatastoreID:              blob.DatastoreID,
+					FallbackDatastoreIDsList: blob.FallbackDatastoreIDsList,
+					RelativeURL:              replaceSha(blob.RelativeURL, manifest.Digest),
+					Sha256:                   strings.ToLower(manifest.Digest.Hex),
+					Size:                     uint64(manifest.Size),
+					LastRefCountChangeTime:   time.Now(),
+					State:                    types.INITIAL,
 				},
 			}
 		} else if existingChild.State == types.LOADED {
 			// Need to update DatastoreID and RelativeURL if the blob is already loaded into CAS,
 			// because if any child blob is not downloaded already, then we would need the below data.
 			existingChild.DatastoreID = blob.DatastoreID
+			existingChild.FallbackDatastoreIDsList = blob.FallbackDatastoreIDsList
 			existingChild.RelativeURL = replaceSha(blob.RelativeURL, manifest.Digest)
 		}
 		log.Functionf("getBlobChildren(%s): manifest %s already exists.", blob.Sha256, childHash)
@@ -312,13 +314,14 @@ func getBlobChildren(ctx *volumemgrContext, blob *types.BlobStatus) []*types.Blo
 				} else {
 					log.Functionf("getBlobChildren(%s): creating a new BlobStatus for child %s", blob.Sha256, childHash)
 					blobChildren = append(blobChildren, &types.BlobStatus{
-						DatastoreID:            blob.DatastoreID,
-						RelativeURL:            replaceSha(blob.RelativeURL, child.Digest),
-						Sha256:                 childHash,
-						Size:                   uint64(child.Size),
-						State:                  types.INITIAL,
-						MediaType:              string(child.MediaType),
-						LastRefCountChangeTime: time.Now(),
+						DatastoreID:              blob.DatastoreID,
+						FallbackDatastoreIDsList: blob.FallbackDatastoreIDsList,
+						RelativeURL:              replaceSha(blob.RelativeURL, child.Digest),
+						Sha256:                   childHash,
+						Size:                     uint64(child.Size),
+						State:                    types.INITIAL,
+						MediaType:                string(child.MediaType),
+						LastRefCountChangeTime:   time.Now(),
 					})
 				}
 			}

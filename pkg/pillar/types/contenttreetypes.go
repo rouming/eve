@@ -16,15 +16,16 @@ import (
 // ContentTreeConfig specifies the needed information for content tree
 // which might need to be downloaded and verified
 type ContentTreeConfig struct {
-	ContentID         uuid.UUID
-	DatastoreID       uuid.UUID
-	RelativeURL       string
-	Format            zconfig.Format // this is the format of the content tree itself, not necessarily of the datastore
-	ContentSha256     string
-	MaxDownloadSize   uint64
-	GenerationCounter int64
-	DisplayName       string
-	CustomMeta        string
+	ContentID                uuid.UUID
+	DatastoreID              uuid.UUID
+	FallbackDatastoreIDsList []uuid.UUID
+	RelativeURL              string
+	Format                   zconfig.Format // this is the format of the content tree itself, not necessarily of the datastore
+	ContentSha256            string
+	MaxDownloadSize          uint64
+	GenerationCounter        int64
+	DisplayName              string
+	CustomMeta               string
 }
 
 // Key is content info UUID which will be unique
@@ -101,17 +102,18 @@ func (config ContentTreeConfig) LogKey() string {
 
 // ContentTreeStatus is response from volumemgr about status of content tree
 type ContentTreeStatus struct {
-	ContentID         uuid.UUID
-	DatastoreID       uuid.UUID
-	DatastoreType     string
-	RelativeURL       string
-	Format            zconfig.Format
-	ContentSha256     string
-	MaxDownloadSize   uint64
-	GenerationCounter int64
-	DisplayName       string
-	HasResolverRef    bool
-	State             SwState
+	ContentID                uuid.UUID
+	DatastoreID              uuid.UUID
+	DatastoreType            string
+	FallbackDatastoreIDsList []uuid.UUID
+	RelativeURL              string
+	Format                   zconfig.Format
+	ContentSha256            string
+	MaxDownloadSize          uint64
+	GenerationCounter        int64
+	DisplayName              string
+	HasResolverRef           bool
+	State                    SwState
 	// XXX RefCount not needed?
 	// RefCount                uint
 	// LastRefCountChangeTime  time.Time
@@ -160,9 +162,13 @@ func (status ContentTreeStatus) ReferenceID() string {
 }
 
 // UpdateFromContentTreeConfig sets up ContentTreeStatus based on ContentTreeConfig struct
+//
+// Be aware: don't expect all fields are updated from the config
+//
 func (status *ContentTreeStatus) UpdateFromContentTreeConfig(config ContentTreeConfig) {
 	status.ContentID = config.ContentID
 	status.DatastoreID = config.DatastoreID
+	status.FallbackDatastoreIDsList = config.FallbackDatastoreIDsList
 	status.RelativeURL = config.RelativeURL
 	status.Format = config.Format
 	status.ContentSha256 = config.ContentSha256

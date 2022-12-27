@@ -150,17 +150,18 @@ func createContentTreeStatus(ctx *volumemgrContext, config types.ContentTreeConf
 		}
 
 		status = &types.ContentTreeStatus{
-			ContentID:         config.ContentID,
-			DatastoreID:       config.DatastoreID,
-			DatastoreType:     datastoreType,
-			RelativeURL:       config.RelativeURL,
-			Format:            config.Format,
-			ContentSha256:     config.ContentSha256,
-			MaxDownloadSize:   config.MaxDownloadSize,
-			GenerationCounter: config.GenerationCounter,
-			DisplayName:       config.DisplayName,
-			State:             types.INITIAL,
-			Blobs:             []string{},
+			ContentID:                config.ContentID,
+			DatastoreID:              config.DatastoreID,
+			DatastoreType:            datastoreType,
+			FallbackDatastoreIDsList: config.FallbackDatastoreIDsList,
+			RelativeURL:              config.RelativeURL,
+			Format:                   config.Format,
+			ContentSha256:            config.ContentSha256,
+			MaxDownloadSize:          config.MaxDownloadSize,
+			GenerationCounter:        config.GenerationCounter,
+			DisplayName:              config.DisplayName,
+			State:                    types.INITIAL,
+			Blobs:                    []string{},
 			// LastRefCountChangeTime: time.Now(),
 		}
 
@@ -180,14 +181,15 @@ func createContentTreeStatus(ctx *volumemgrContext, config types.ContentTreeConf
 					mediaType = ""
 				}
 				rootBlob := &types.BlobStatus{
-					DatastoreID:            config.DatastoreID,
-					RelativeURL:            config.RelativeURL,
-					Sha256:                 strings.ToLower(config.ContentSha256),
-					Size:                   config.MaxDownloadSize,
-					State:                  types.INITIAL,
-					MediaType:              mediaType,
-					CreateTime:             time.Now(),
-					LastRefCountChangeTime: time.Now(),
+					DatastoreID:              config.DatastoreID,
+					FallbackDatastoreIDsList: config.FallbackDatastoreIDsList,
+					RelativeURL:              config.RelativeURL,
+					Sha256:                   strings.ToLower(config.ContentSha256),
+					Size:                     config.MaxDownloadSize,
+					State:                    types.INITIAL,
+					MediaType:                mediaType,
+					CreateTime:               time.Now(),
+					LastRefCountChangeTime:   time.Now(),
 				}
 				publishBlobStatus(ctx, rootBlob)
 			}
