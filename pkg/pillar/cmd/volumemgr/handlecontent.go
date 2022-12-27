@@ -13,6 +13,7 @@ import (
 	"github.com/lf-edge/eve/pkg/pillar/types"
 	"github.com/lf-edge/eve/pkg/pillar/utils"
 	"github.com/lf-edge/eve/pkg/pillar/vault"
+	uuid "github.com/satori/go.uuid"
 )
 
 func handleContentTreeCreate(ctxArg interface{}, key string,
@@ -134,25 +135,49 @@ func lookupContentTreeConfig(ctx *volumemgrContext, key string) *types.ContentTr
 	return &config
 }
 
+// populateDatastoreFields() - populate all datastore related fields traversing
+//                             all IDs: starting from the main DatastoreID and
+//                             then fallback IDs. Type of the found datastore
+//                             is stored into the types list. Mark the whole
+//                             status as resolved if all the datastores were
+//                             successfully found.
+func populateDatastoreFields(ctx *volumemgrContext, config types.ContentTreeConfig,
+	status *types.ContentTreeStatus) {
+
+	// Prepend main datastore to the fallback datastore list in order
+	dsids := append([]uuid.UUID{config.DatastoreID},
+		config.FallbackDatastoreIDsList...)
+	nr := len(dsids)
+
+	status.DatastoreTypesList = make([]string, nr)
+
+	nrResolved := 0
+	for i, dsid := range dsids {
+		dsConfig, _ := utils.LookupDatastoreConfig(ctx.subDatastoreConfig, dsid)
+		if dsConfig == nil {
+			// Still not found, repeat on the datastore update
+			continue
+		}
+		status.DatastoreTypesList[i] = dsConfig.DsType
+		nrResolved += 1
+
+		// OCI registry is special, so mark the whole status if there is any
+		if dsConfig.DsType == zconfig.DsType_DsContainerRegistry.String() {
+			status.IsOCIRegistry = true
+		}
+	}
+
+	status.AllDatastoresResolved = (nrResolved == nr)
+}
+
 func createContentTreeStatus(ctx *volumemgrContext, config types.ContentTreeConfig) *types.ContentTreeStatus {
 
 	log.Functionf("createContentTreeStatus for %v", config.ContentID)
 	status := ctx.LookupContentTreeStatus(config.Key())
 	if status == nil {
-		// need to save the datastore type
-		var datastoreType string
-		datastoreConfig, err := utils.LookupDatastoreConfig(ctx.subDatastoreConfig, config.DatastoreID)
-		if datastoreConfig == nil {
-			log.Errorf("createContentTreeStatus(%s): datastoreConfig for %s not found %v", config.Key(), config.DatastoreID, err)
-		} else {
-			log.Tracef("Found datastore(%s) for %s", config.DatastoreID.String(), config.Key())
-			datastoreType = datastoreConfig.DsType
-		}
-
 		status = &types.ContentTreeStatus{
 			ContentID:                config.ContentID,
 			DatastoreID:              config.DatastoreID,
-			DatastoreType:            datastoreType,
 			FallbackDatastoreIDsList: config.FallbackDatastoreIDsList,
 			RelativeURL:              config.RelativeURL,
 			Format:                   config.Format,
@@ -164,6 +189,7 @@ func createContentTreeStatus(ctx *volumemgrContext, config types.ContentTreeConf
 			Blobs:                    []string{},
 			// LastRefCountChangeTime: time.Now(),
 		}
+		populateDatastoreFields(ctx, config, status)
 
 		// we only publish the BlobStatus if we have the hash for it; this
 		// might come later
