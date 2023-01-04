@@ -17,8 +17,7 @@ import (
 // which might need to be downloaded and verified
 type ContentTreeConfig struct {
 	ContentID                uuid.UUID
-	DatastoreID              uuid.UUID
-	FallbackDatastoreIDsList []uuid.UUID
+	DatastoreIDs             []uuid.UUID
 	RelativeURL              string
 	Format                   zconfig.Format // this is the format of the content tree itself, not necessarily of the datastore
 	ContentSha256            string
@@ -40,7 +39,7 @@ func (config ContentTreeConfig) LogCreate(logBase *base.LogObject) {
 	if logObject == nil {
 		return
 	}
-	logObject.CloneAndAddField("datastore-id", config.DatastoreID).
+	logObject.CloneAndAddField("datastore-id", config.DatastoreIDs[0]).
 		AddField("relative-URL", config.RelativeURL).
 		AddField("format", config.Format).
 		AddField("content-sha256", config.ContentSha256).
@@ -57,18 +56,18 @@ func (config ContentTreeConfig) LogModify(logBase *base.LogObject, old interface
 	if !ok {
 		logObject.Clone().Fatalf("LogModify: Old object interface passed is not of ContentTreeConfig type")
 	}
-	if oldConfig.DatastoreID != config.DatastoreID ||
+	if oldConfig.DatastoreIDs[0] != config.DatastoreIDs[0] ||
 		oldConfig.RelativeURL != config.RelativeURL ||
 		oldConfig.Format != config.Format ||
 		oldConfig.ContentSha256 != config.ContentSha256 ||
 		oldConfig.MaxDownloadSize != config.MaxDownloadSize {
 
-		logObject.CloneAndAddField("datastore-id", config.DatastoreID).
+		logObject.CloneAndAddField("datastore-id", config.DatastoreIDs[0]).
 			AddField("relative-URL", config.RelativeURL).
 			AddField("format", config.Format).
 			AddField("content-sha256", config.ContentSha256).
 			AddField("max-download-size-int64", config.MaxDownloadSize).
-			AddField("old-datastore-id", oldConfig.DatastoreID).
+			AddField("old-datastore-id", oldConfig.DatastoreIDs[0]).
 			AddField("old-relative-URL", oldConfig.RelativeURL).
 			AddField("old-format", oldConfig.Format).
 			AddField("old-content-sha256", oldConfig.ContentSha256).
@@ -85,7 +84,7 @@ func (config ContentTreeConfig) LogModify(logBase *base.LogObject, old interface
 func (config ContentTreeConfig) LogDelete(logBase *base.LogObject) {
 	logObject := base.EnsureLogObject(logBase, base.ContentTreeConfigLogType, config.DisplayName,
 		config.ContentID, config.LogKey())
-	logObject.CloneAndAddField("datastore-id", config.DatastoreID).
+	logObject.CloneAndAddField("datastore-id", config.DatastoreIDs[0]).
 		AddField("relative-URL", config.RelativeURL).
 		AddField("format", config.Format).
 		AddField("content-sha256", config.ContentSha256).
@@ -103,8 +102,7 @@ func (config ContentTreeConfig) LogKey() string {
 // ContentTreeStatus is response from volumemgr about status of content tree
 type ContentTreeStatus struct {
 	ContentID                uuid.UUID
-	DatastoreID              uuid.UUID
-	FallbackDatastoreIDsList []uuid.UUID
+	DatastoreIDs             []uuid.UUID
 	DatastoreTypesList       []string // the first type is type of DatastoreID, then fallback datastores follow
 	AllDatastoresResolved    bool
 	IsOCIRegistry            bool
@@ -138,7 +136,7 @@ func (status ContentTreeStatus) Key() string {
 
 // ResolveKey will return the key of resolver config/status
 func (status ContentTreeStatus) ResolveKey() string {
-	return fmt.Sprintf("%s+%s+%v", status.DatastoreID.String(),
+	return fmt.Sprintf("%s+%s+%v", status.DatastoreIDs[0].String(),
 		status.RelativeURL, status.GenerationCounter)
 }
 
@@ -161,8 +159,7 @@ func (status ContentTreeStatus) ReferenceID() string {
 //
 func (status *ContentTreeStatus) UpdateFromContentTreeConfig(config ContentTreeConfig) {
 	status.ContentID = config.ContentID
-	status.DatastoreID = config.DatastoreID
-	status.FallbackDatastoreIDsList = config.FallbackDatastoreIDsList
+	status.DatastoreIDs = config.DatastoreIDs
 	status.RelativeURL = config.RelativeURL
 	status.Format = config.Format
 	status.ContentSha256 = config.ContentSha256

@@ -14,10 +14,8 @@ import (
 
 // BlobStatus status of a downloaded blob
 type BlobStatus struct {
-	// DatastoreID ID of the datastore where the blob can be retrieved
-	DatastoreID uuid.UUID
-	// List of fallback datastores
-	FallbackDatastoreIDsList []uuid.UUID
+	// DatastoreIDs ID of the datastore where the blob can be retrieved
+	DatastoreIDs []uuid.UUID
 	// RelativeURL URL relative to the root of the datastore
 	RelativeURL string
 	// Sha256 the sha of the blob
@@ -83,7 +81,7 @@ func (status BlobStatus) LogCreate(logBase *base.LogObject) {
 		return
 	}
 	logObject.CloneAndAddField("state", status.State.String()).
-		AddField("datastoreid-uuid", status.DatastoreID).
+		AddField("datastoreid-uuid", status.DatastoreIDs[0]).
 		AddField("size-int64", status.Size).
 		AddField("blobtype-string", status.MediaType).
 		AddField("refcount-int64", status.RefCount).

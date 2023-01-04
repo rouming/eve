@@ -33,7 +33,7 @@ func doUpdateContentTree(ctx *volumemgrContext, status *types.ContentTreeStatus)
 		}
 
 		if status.IsOCIRegistry {
-			if len(status.FallbackDatastoreIDsList) != 0 {
+			if len(status.DatastoreIDs) > 1 {
 				err := fmt.Sprintf("doUpdateContentTree(%s) name %s: OCI registry along with the fallback datastores list is not supported",
 					status.Key(), status.DisplayName)
 				log.Errorf(err)
@@ -102,8 +102,7 @@ func doUpdateContentTree(ctx *volumemgrContext, status *types.ContentTreeStatus)
 			rootBlob := lookupOrCreateBlobStatus(ctx, status.ContentSha256)
 			if rootBlob == nil {
 				rootBlob = &types.BlobStatus{
-					DatastoreID:              status.DatastoreID,
-					FallbackDatastoreIDsList: status.FallbackDatastoreIDsList,
+					DatastoreIDs:             status.DatastoreIDs,
 					RelativeURL:              status.RelativeURL,
 					Sha256:                   status.ContentSha256,
 					Size:                     status.MaxDownloadSize,
@@ -117,8 +116,7 @@ func doUpdateContentTree(ctx *volumemgrContext, status *types.ContentTreeStatus)
 			} else if rootBlob.State == types.LOADED {
 				//Need to update DatastoreID and RelativeURL if the blob is already loaded into CAS,
 				// because if any child blob is not downloaded, then we would need the below data.
-				rootBlob.DatastoreID = status.DatastoreID
-				rootBlob.FallbackDatastoreIDsList = status.FallbackDatastoreIDsList
+				rootBlob.DatastoreIDs = status.DatastoreIDs
 				rootBlob.RelativeURL = status.RelativeURL
 				log.Functionf("doUpdateContentTree: publishing loaded root BlobStatus (%s) for content tree (%s)",
 					status.ContentSha256, status.ContentID)
@@ -777,7 +775,7 @@ func updateStatusByBlob(ctx *volumemgrContext, sha ...string) {
 //                          an ID. Returns 'true' if all datastore types are resolved
 //                          and datastore ID was found in this particular content tree
 func setDatastoreTypeByID(ds types.DatastoreConfig, status *types.ContentTreeStatus) bool {
-	nr := len(status.FallbackDatastoreIDsList) + 1
+	nr := 0;//XXX len(status.FallbackDatastoreIDsList) + 1
 	found := false
 	nrResolved := 0
 
@@ -785,11 +783,11 @@ func setDatastoreTypeByID(ds types.DatastoreConfig, status *types.ContentTreeSta
 	for i := 0; i < nr; i++ {
 		var id uuid.UUID
 
-		if i == 0 {
-			id = status.DatastoreID
-		} else {
-			id = status.FallbackDatastoreIDsList[i-1]
-		}
+		//		if i == 0 {
+		id = status.DatastoreIDs[0]
+		//		} else {
+		//			id = status.FallbackDatastoreIDsList[i-1]
+		//		}
 		tptr := &status.DatastoreTypesList[i]
 
 		// Assign a type if datastores's ID matches

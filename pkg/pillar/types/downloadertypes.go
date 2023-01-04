@@ -15,8 +15,7 @@ import (
 // The key/index to this is the ImageSha256 which is allocated by the controller or resolver.
 type DownloaderConfig struct {
 	ImageSha256              string
-	DatastoreID              uuid.UUID
-	FallbackDatastoreIDsList []uuid.UUID
+	DatastoreIDs             []uuid.UUID
 	Name                     string
 	Target                   string // file path where to download the file
 	NameIsURL                bool   // If not we form URL based on datastore info
@@ -37,7 +36,7 @@ func (config DownloaderConfig) LogCreate(logBase *base.LogObject) {
 		return
 	}
 	logObject.CloneAndAddField("target", config.Target).
-		AddField("datastore-id", config.DatastoreID).
+		AddField("datastore-id", config.DatastoreIDs[0]).
 		AddField("refcount-int64", config.RefCount).
 		AddField("size-int64", config.Size).
 		Noticef("Download config create")
@@ -53,16 +52,16 @@ func (config DownloaderConfig) LogModify(logBase *base.LogObject, old interface{
 		logObject.Clone().Fatalf("LogModify: Old object interface passed is not of DownloaderConfig type")
 	}
 	if oldConfig.Target != config.Target ||
-		oldConfig.DatastoreID != config.DatastoreID ||
+		oldConfig.DatastoreIDs[0] != config.DatastoreIDs[0] ||
 		oldConfig.RefCount != config.RefCount ||
 		oldConfig.Size != config.Size {
 
 		logObject.CloneAndAddField("target", config.Target).
-			AddField("datastore-id", config.DatastoreID).
+			AddField("datastore-id", config.DatastoreIDs[0]).
 			AddField("refcount-int64", config.RefCount).
 			AddField("size-int64", config.Size).
 			AddField("old-target", oldConfig.Target).
-			AddField("old-datastore-id", oldConfig.DatastoreID).
+			AddField("old-datastore-id", oldConfig.DatastoreIDs[0]).
 			AddField("old-refcount-int64", oldConfig.RefCount).
 			AddField("old-size-int64", oldConfig.Size).
 			Noticef("Download config modify")
@@ -78,7 +77,7 @@ func (config DownloaderConfig) LogDelete(logBase *base.LogObject) {
 	logObject := base.EnsureLogObject(logBase, base.DownloaderConfigLogType, config.Name,
 		nilUUID, config.LogKey())
 	logObject.CloneAndAddField("target", config.Target).
-		AddField("datastore-id", config.DatastoreID).
+		AddField("datastore-id", config.DatastoreIDs[0]).
 		AddField("refcount-int64", config.RefCount).
 		AddField("size-int64", config.Size).
 		Noticef("Download config delete")
@@ -94,8 +93,7 @@ func (config DownloaderConfig) LogKey() string {
 // The key/index to this is the ImageSha256 which comes from DownloaderConfig.
 type DownloaderStatus struct {
 	ImageSha256              string
-	DatastoreID              uuid.UUID
-	FallbackDatastoreIDsList []uuid.UUID
+	DatastoreIDs             []uuid.UUID
 	Target                   string // file path where we download the file
 	Name                     string
 	PendingAdd               bool

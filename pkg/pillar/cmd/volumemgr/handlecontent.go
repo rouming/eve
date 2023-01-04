@@ -145,8 +145,9 @@ func populateDatastoreFields(ctx *volumemgrContext, config types.ContentTreeConf
 	status *types.ContentTreeStatus) {
 
 	// Prepend main datastore to the fallback datastore list in order
-	dsids := append([]uuid.UUID{config.DatastoreID},
-		config.FallbackDatastoreIDsList...)
+	//	dsids := append([]uuid.UUID{config.DatastoreID},
+	//		config.FallbackDatastoreIDsList...)
+	dsids := []uuid.UUID{}
 	nr := len(dsids)
 
 	status.DatastoreTypesList = make([]string, nr)
@@ -177,8 +178,7 @@ func createContentTreeStatus(ctx *volumemgrContext, config types.ContentTreeConf
 	if status == nil {
 		status = &types.ContentTreeStatus{
 			ContentID:                config.ContentID,
-			DatastoreID:              config.DatastoreID,
-			FallbackDatastoreIDsList: config.FallbackDatastoreIDsList,
+			DatastoreIDs:             config.DatastoreIDs,
 			RelativeURL:              config.RelativeURL,
 			Format:                   config.Format,
 			ContentSha256:            config.ContentSha256,
@@ -207,8 +207,7 @@ func createContentTreeStatus(ctx *volumemgrContext, config types.ContentTreeConf
 					mediaType = ""
 				}
 				rootBlob := &types.BlobStatus{
-					DatastoreID:              config.DatastoreID,
-					FallbackDatastoreIDsList: config.FallbackDatastoreIDsList,
+					DatastoreIDs:             config.DatastoreIDs,
 					RelativeURL:              config.RelativeURL,
 					Sha256:                   strings.ToLower(config.ContentSha256),
 					Size:                     config.MaxDownloadSize,

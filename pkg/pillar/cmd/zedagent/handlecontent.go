@@ -32,6 +32,17 @@ func stringsToUuids(strings []string) ([]uuid.UUID, error) {
 	return list, nil
 }
 
+func populateDatastoreIDs(contentTree *zconfig.ContentTree, cfg *types.ContentTreeConfig) {
+	dsIds := contentTree.GetDsIdsList()
+	if len(dsIds) == 0 {
+		dsIds = append(dsIds, contentTree.GetDsId())
+	}
+
+	dsIdsStr, _ := stringsToUuids(dsIds)
+	cfg.DatastoreIDs = dsIdsStr
+	//XXX cfg.FallbackDatastoreIDsList = dsIdsStr[1:]
+}
+
 // content info parsing routine
 func parseContentInfoConfig(ctx *getconfigContext,
 	config *zconfig.EdgeDevConfig) {
@@ -74,8 +85,7 @@ func parseContentInfoConfig(ctx *getconfigContext,
 	for _, cfgContentTree := range cfgContentTreeList {
 		contentConfig := new(types.ContentTreeConfig)
 		contentConfig.ContentID, _ = uuid.FromString(cfgContentTree.GetUuid())
-		contentConfig.DatastoreID, _ = uuid.FromString(cfgContentTree.GetDsId())
-		contentConfig.FallbackDatastoreIDsList, _ = stringsToUuids(cfgContentTree.GetFallbackDsIdsList())
+		populateDatastoreIDs(cfgContentTree, contentConfig)
 		contentConfig.RelativeURL = cfgContentTree.GetURL()
 		contentConfig.Format = cfgContentTree.GetIformat()
 		contentConfig.ContentSha256 = strings.ToLower(cfgContentTree.GetSha256())

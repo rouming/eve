@@ -210,12 +210,12 @@ func Run(ps *pubsub.PubSub, loggerArg *logrus.Logger, logArg *base.LogObject, ar
 
 // lookupDatastore() - does lookup for datastore ID and returns true if found
 func lookupDatastore(dsid_ uuid.UUID, status types.DownloaderStatus) bool {
-	dsids := append(status.FallbackDatastoreIDsList, status.DatastoreID)
-	for _, dsid := range dsids {
-		if dsid == dsid_ {
-			return true
-		}
-	}
+	//	dsids := append(status.FallbackDatastoreIDsList, status.DatastoreID)
+	//	for _, dsid := range dsids {
+	//		if dsid == dsid_ {
+	//			return true
+	//		}
+	//	}
 	return false
 }
 
@@ -369,8 +369,7 @@ func handleCreate(ctx *downloaderContext, config types.DownloaderConfig,
 	if status == nil {
 		// Start by marking with PendingAdd
 		status0 := types.DownloaderStatus{
-			DatastoreID:              config.DatastoreID,
-			FallbackDatastoreIDsList: config.FallbackDatastoreIDsList,
+			DatastoreIDs:             config.DatastoreIDs,
 			Name:                     config.Name,
 			ImageSha256:              config.ImageSha256,
 			State:                    types.DOWNLOADING,
@@ -383,8 +382,7 @@ func handleCreate(ctx *downloaderContext, config types.DownloaderConfig,
 	} else {
 		// when refcount moves from 0 to a non-zero number,
 		// should trigger a fresh download of the object
-		status.DatastoreID = config.DatastoreID
-		status.FallbackDatastoreIDsList = config.FallbackDatastoreIDsList
+		status.DatastoreIDs = config.DatastoreIDs
 		status.ImageSha256 = config.ImageSha256
 		status.State = types.DOWNLOADING
 		status.RefCount = config.RefCount
@@ -495,8 +493,7 @@ func doDownload(ctx *downloaderContext, config types.DownloaderConfig, status *t
 
 	// Prepend main datastore to the fallback datastore list in order
 	// to start downloading from the main datastore first
-	dsids := append([]uuid.UUID{config.DatastoreID},
-		config.FallbackDatastoreIDsList...)
+	dsids := config.DatastoreIDs
 	dslist, err := prepareDatastoresList(ctx, config, dsids)
 	if err != nil {
 		errStr := fmt.Sprintf("Retry download in %v: %s failed: %s",

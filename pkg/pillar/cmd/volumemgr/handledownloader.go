@@ -46,7 +46,7 @@ func AddOrRefcountDownloaderConfig(ctx *volumemgrContext, blob types.BlobStatus)
 	// where should the final downloaded file be?
 	// Pick a name based on existing info about object to persist it across reboots
 	idHash := sha256.New()
-	idHash.Write(blob.DatastoreID.Bytes())
+	idHash.Write(blob.DatastoreIDs[0].Bytes())
 	idHash.Write([]byte(blob.RelativeURL))
 	idHash.Write([]byte(strconv.FormatUint(blob.Size, 10)))
 	pendingFile := hex.EncodeToString(idHash.Sum(nil)) + "." + blob.Sha256
@@ -56,8 +56,7 @@ func AddOrRefcountDownloaderConfig(ctx *volumemgrContext, blob types.BlobStatus)
 	// try to reserve storage, must be released on error
 	size := blob.Size
 	n := types.DownloaderConfig{
-		DatastoreID:              blob.DatastoreID,
-		FallbackDatastoreIDsList: blob.FallbackDatastoreIDsList,
+		DatastoreIDs:             blob.DatastoreIDs,
 		Name:                     blob.RelativeURL,
 		ImageSha256:              blob.Sha256,
 		Size:                     size,
