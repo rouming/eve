@@ -368,7 +368,6 @@ func handleCreate(ctx *downloaderContext, config types.DownloaderConfig,
 	if status == nil {
 		// Start by marking with PendingAdd
 		status0 := types.DownloaderStatus{
-			DatastoreID:     config.DatastoreID,
 			DatastoreIDList: config.DatastoreIDList,
 			Name:            config.Name,
 			ImageSha256:     config.ImageSha256,
@@ -382,7 +381,6 @@ func handleCreate(ctx *downloaderContext, config types.DownloaderConfig,
 	} else {
 		// when refcount moves from 0 to a non-zero number,
 		// should trigger a fresh download of the object
-		status.DatastoreID = config.DatastoreID
 		status.DatastoreIDList = config.DatastoreIDList
 		status.ImageSha256 = config.ImageSha256
 		status.State = types.DOWNLOADING
