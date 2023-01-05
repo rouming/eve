@@ -83,7 +83,7 @@ func (status BlobStatus) LogCreate(logBase *base.LogObject) {
 		return
 	}
 	logObject.CloneAndAddField("state", status.State.String()).
-		AddField("datastoreid-uuid", status.DatastoreID).
+		AddField("datastoreid-uuid", status.DatastoreIDsList[0]).
 		AddField("size-int64", status.Size).
 		AddField("blobtype-string", status.MediaType).
 		AddField("refcount-int64", status.RefCount).

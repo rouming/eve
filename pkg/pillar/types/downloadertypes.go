@@ -37,7 +37,7 @@ func (config DownloaderConfig) LogCreate(logBase *base.LogObject) {
 		return
 	}
 	logObject.CloneAndAddField("target", config.Target).
-		AddField("datastore-id", config.DatastoreID).
+		AddField("datastore-id", config.DatastoreIDsList[0]).
 		AddField("refcount-int64", config.RefCount).
 		AddField("size-int64", config.Size).
 		Noticef("Download config create")
@@ -53,16 +53,16 @@ func (config DownloaderConfig) LogModify(logBase *base.LogObject, old interface{
 		logObject.Clone().Fatalf("LogModify: Old object interface passed is not of DownloaderConfig type")
 	}
 	if oldConfig.Target != config.Target ||
-		oldConfig.DatastoreID != config.DatastoreID ||
+		oldConfig.DatastoreIDsList[0] != config.DatastoreIDsList[0] ||
 		oldConfig.RefCount != config.RefCount ||
 		oldConfig.Size != config.Size {
 
 		logObject.CloneAndAddField("target", config.Target).
-			AddField("datastore-id", config.DatastoreID).
+			AddField("datastore-id", config.DatastoreIDsList[0]).
 			AddField("refcount-int64", config.RefCount).
 			AddField("size-int64", config.Size).
 			AddField("old-target", oldConfig.Target).
-			AddField("old-datastore-id", oldConfig.DatastoreID).
+			AddField("old-datastore-id", oldConfig.DatastoreIDsList[0]).
 			AddField("old-refcount-int64", oldConfig.RefCount).
 			AddField("old-size-int64", oldConfig.Size).
 			Noticef("Download config modify")
@@ -78,7 +78,7 @@ func (config DownloaderConfig) LogDelete(logBase *base.LogObject) {
 	logObject := base.EnsureLogObject(logBase, base.DownloaderConfigLogType, config.Name,
 		nilUUID, config.LogKey())
 	logObject.CloneAndAddField("target", config.Target).
-		AddField("datastore-id", config.DatastoreID).
+		AddField("datastore-id", config.DatastoreIDsList[0]).
 		AddField("refcount-int64", config.RefCount).
 		AddField("size-int64", config.Size).
 		Noticef("Download config delete")
