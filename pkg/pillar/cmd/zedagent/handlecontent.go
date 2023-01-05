@@ -85,7 +85,6 @@ func parseContentInfoConfig(ctx *getconfigContext,
 	for _, cfgContentTree := range cfgContentTreeList {
 		contentConfig := new(types.ContentTreeConfig)
 		contentConfig.ContentID, _ = uuid.FromString(cfgContentTree.GetUuid())
-		contentConfig.DatastoreID, _ = uuid.FromString(cfgContentTree.GetDsId())
 		contentConfig.DatastoreIDsList, _ = getDatastoreIDsList(cfgContentTree)
 		contentConfig.RelativeURL = cfgContentTree.GetURL()
 		contentConfig.Format = cfgContentTree.GetIformat()

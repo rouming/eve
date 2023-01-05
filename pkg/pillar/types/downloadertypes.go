@@ -15,7 +15,6 @@ import (
 // The key/index to this is the ImageSha256 which is allocated by the controller or resolver.
 type DownloaderConfig struct {
 	ImageSha256      string
-	DatastoreID      uuid.UUID
 	DatastoreIDsList []uuid.UUID
 	Name             string
 	Target           string // file path where to download the file
@@ -94,7 +93,6 @@ func (config DownloaderConfig) LogKey() string {
 // The key/index to this is the ImageSha256 which comes from DownloaderConfig.
 type DownloaderStatus struct {
 	ImageSha256      string
-	DatastoreID      uuid.UUID
 	DatastoreIDsList []uuid.UUID
 	Target           string // file path where we download the file
 	Name             string

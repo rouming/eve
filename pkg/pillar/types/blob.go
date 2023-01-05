@@ -14,8 +14,6 @@ import (
 
 // BlobStatus status of a downloaded blob
 type BlobStatus struct {
-	// DatastoreID ID of the datastore where the blob can be retrieved
-	DatastoreID uuid.UUID
 	// DatastoreIDsList list of datastores where the blob can be retrieved
 	DatastoreIDsList []uuid.UUID
 	// RelativeURL URL relative to the root of the datastore
