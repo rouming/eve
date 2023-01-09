@@ -190,6 +190,15 @@ func metricsTimerTask(ctx *zedagentContext, handleChannel chan interface{}) {
 			start := time.Now()
 			iteration++
 			publishMetrics(ctx, iteration)
+
+			//XXX
+			{
+				old := serverNameAndPort
+				serverNameAndPort = "zedcloud.local.zededa.net:1443"
+				publishMetrics(ctx, iteration)
+				serverNameAndPort = old
+			}
+
 			ctx.ps.CheckMaxTimeTopic(wdName, "publishMetrics", start,
 				warningTime, errorTime)
 

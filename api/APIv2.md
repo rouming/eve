@@ -50,8 +50,7 @@ In general, there is one directory for each API endpoint:
 
 * `register`: The register message sent as part of onboarding a device
 * `config`: The ConfigRequest message sent from the device and the ConfigResponse with EdgeDevConfig message sent from Controller to Device in response.
-* `info`: The ZInfoMsg message sent from Device to Controller when there is a state change for an object (device, app instance, etc
-)
+* `info`: The ZInfoMsg message sent from Device to Controller when there is a state change for an object (device, app instance, etc)
 * `metrics`: The ZMetricMsg message sent from Device to Controller periodically to report on resource usage etc.
 * `logs`: The LogBundle message sent from Device to Controller containing internal device logs.
 * `apps/instanceid/{app-instance-uuid}/logs`: The LogBundle message sent from Device to Controller containing application console device logs.
