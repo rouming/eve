@@ -6,12 +6,23 @@ package types
 import (
 	"fmt"
 	"time"
+	"strings"
 
 	"github.com/google/go-cmp/cmp"
 	zconfig "github.com/lf-edge/eve/api/go/config"
 	"github.com/lf-edge/eve/pkg/pillar/base"
 	uuid "github.com/satori/go.uuid"
 )
+
+// uuidsToStrings() - converts list of uuids to a list of strings,
+func uuidsToString(uuids []uuid.UUID) ([]string) {
+	list := make([]string, len(uuids))
+	for i, uuid := range uuids {
+		list[i] = uuid.String()
+	}
+
+	return list
+}
 
 // ContentTreeConfig specifies the needed information for content tree
 // which might need to be downloaded and verified
@@ -39,7 +50,8 @@ func (config ContentTreeConfig) LogCreate(logBase *base.LogObject) {
 	if logObject == nil {
 		return
 	}
-	logObject.CloneAndAddField("datastore-id", config.DatastoreIDsList[0]).
+	uuids := strings.Join(uuidsToString(config.DatastoreIDsList), ",")
+	logObject.CloneAndAddField("datastore-ids", uuids).
 		AddField("relative-URL", config.RelativeURL).
 		AddField("format", config.Format).
 		AddField("content-sha256", config.ContentSha256).
@@ -56,18 +68,21 @@ func (config ContentTreeConfig) LogModify(logBase *base.LogObject, old interface
 	if !ok {
 		logObject.Clone().Fatalf("LogModify: Old object interface passed is not of ContentTreeConfig type")
 	}
-	if oldConfig.DatastoreIDsList[0] != config.DatastoreIDsList[0] ||
+	uuids := strings.Join(uuidsToString(config.DatastoreIDsList), ",")
+	oldUuids := strings.Join(uuidsToString(oldConfig.DatastoreIDsList), ",")
+
+	if uuids != oldUuids ||
 		oldConfig.RelativeURL != config.RelativeURL ||
 		oldConfig.Format != config.Format ||
 		oldConfig.ContentSha256 != config.ContentSha256 ||
 		oldConfig.MaxDownloadSize != config.MaxDownloadSize {
 
-		logObject.CloneAndAddField("datastore-id", config.DatastoreIDsList[0]).
+		logObject.CloneAndAddField("datastore-ids", uuids).
 			AddField("relative-URL", config.RelativeURL).
 			AddField("format", config.Format).
 			AddField("content-sha256", config.ContentSha256).
 			AddField("max-download-size-int64", config.MaxDownloadSize).
-			AddField("old-datastore-id", oldConfig.DatastoreIDsList[0]).
+			AddField("old-datastore-id", oldUuids).
 			AddField("old-relative-URL", oldConfig.RelativeURL).
 			AddField("old-format", oldConfig.Format).
 			AddField("old-content-sha256", oldConfig.ContentSha256).
@@ -84,7 +99,8 @@ func (config ContentTreeConfig) LogModify(logBase *base.LogObject, old interface
 func (config ContentTreeConfig) LogDelete(logBase *base.LogObject) {
 	logObject := base.EnsureLogObject(logBase, base.ContentTreeConfigLogType, config.DisplayName,
 		config.ContentID, config.LogKey())
-	logObject.CloneAndAddField("datastore-id", config.DatastoreIDsList[0]).
+	uuids := strings.Join(uuidsToString(config.DatastoreIDsList), ",")
+	logObject.CloneAndAddField("datastore-ids", uuids).
 		AddField("relative-URL", config.RelativeURL).
 		AddField("format", config.Format).
 		AddField("content-sha256", config.ContentSha256).
@@ -136,7 +152,8 @@ func (status ContentTreeStatus) Key() string {
 
 // ResolveKey will return the key of resolver config/status
 func (status ContentTreeStatus) ResolveKey() string {
-	return fmt.Sprintf("%s+%s+%v", status.DatastoreIDsList[0].String(),
+	uuids := strings.Join(uuidsToString(config.DatastoreIDsList), ",")
+	return fmt.Sprintf("%s+%s+%v", uuids,
 		status.RelativeURL, status.GenerationCounter)
 }
 

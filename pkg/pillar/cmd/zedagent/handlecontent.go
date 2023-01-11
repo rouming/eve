@@ -18,14 +18,17 @@ import (
 var contentInfoHash []byte
 
 // stringsToUuids() - converts list of strings to a list of uuids,
-//                    returns empty list and a last error if conversion fails
+//                    returns a list with a nil uuid and a last error if
+//                    conversion fails
 func stringsToUuids(strings []string) ([]uuid.UUID, error) {
 	list := make([]uuid.UUID, len(strings))
 	for i, str := range strings {
 		var err error
 		list[i], err = uuid.FromString(str)
 		if err != nil {
-			return []uuid.UUID{}, err
+			log.Errorf("stringsToUuids(): error parsing UUID '%s' index %d, %v\n",
+				str, i, err)
+			return []uuid.UUID{nilUUID}, err
 		}
 	}
 
@@ -36,11 +39,11 @@ func stringsToUuids(strings []string) ([]uuid.UUID, error) {
 func getDatastoreIDsList(contentTree *zconfig.ContentTree) ([]uuid.UUID, error) {
 	idsStrList := contentTree.GetDsIdsList()
 	if len(idsStrList) == 0 {
-		// Compatbility with the old controller, which does not support
+		// Compatibility with the old controller, which does not support
 		// list of datastores
 		idsStrList = []string{contentTree.GetDsId()}
 	}
-	return stringsToUuids(contentTree.GetDsIdsList())
+	return stringsToUuids(idsStrList)
 }
 
 // content info parsing routine
