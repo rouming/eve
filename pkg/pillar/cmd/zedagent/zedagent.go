@@ -245,6 +245,8 @@ func Run(ps *pubsub.PubSub, loggerArg *logrus.Logger, logArg *base.LogObject, ar
 	logger = loggerArg
 	log = logArg
 
+	log.Errorf("ZEDAGENT !!!!!!!!!!!!")
+
 	zedagentCtx := &zedagentContext{}
 	agentbase.Init(zedagentCtx, logger, log, agentName,
 		agentbase.WithArguments(arguments))

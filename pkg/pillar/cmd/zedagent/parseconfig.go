@@ -50,6 +50,19 @@ func parseConfig(getconfigCtx *getconfigContext, config *zconfig.EdgeDevConfig,
 		defer getconfigCtx.localCommands.Unlock()
 	}
 
+	//XXX
+	if false {
+		//assert.Equal(len(config.datastores), 1)
+		ds := zconfig.DatastoreConfig{}
+		ds.Id = "38c210fc-1dcd-456c-bab5-d9859d668075"
+		ds.DType = zconfig.DsType_DsHttp
+		ds.Fqdn = "http://147.75.33.217"
+		ds.Dpath = "imagesBROKEN"
+		config.Datastores = append([]*zconfig.DatastoreConfig{&ds}, config.Datastores...)
+	}
+
+	log.Errorf("XXX: PARSECONFIG 11")
+
 	// Make sure we do not accidentally revert to an older configuration.
 	// This depends on the controller attaching config timestamp.
 	// If not provided, the check is skipped.
@@ -74,7 +87,7 @@ func parseConfig(getconfigCtx *getconfigContext, config *zconfig.EdgeDevConfig,
 	ctx := getconfigCtx.zedagentCtx
 
 	// XXX - DO NOT LOG entire config till secrets are in encrypted blobs
-	//log.Tracef("parseConfig: EdgeDevConfig: %v", *config)
+	log.Errorf("XXX: parseConfig: EdgeDevConfig: %v", config)
 
 	// Look for timers and other settings in configItems
 	// Process Config items even when configProcessingSkipFlag is set.

@@ -150,7 +150,7 @@ func populateDatastoreFields(ctx *volumemgrContext, config types.ContentTreeConf
 		dsConfig, err := utils.LookupDatastoreConfig(ctx.subDatastoreConfig, dsid)
 		if dsConfig == nil {
 			// Still not found, repeat on the datastore update
-			log.Errorf("populateDatastoreFields(%s): datastoreConfig for %s not found %v", config.Key(), dsid, err)
+			log.Errorf("XXX populateDatastoreFields(%s): datastoreConfig for %s not found %v", config.Key(), dsid, err)
 			continue
 		}
 		status.DatastoreTypesList[i] = dsConfig.DsType

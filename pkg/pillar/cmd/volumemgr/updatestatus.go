@@ -779,9 +779,14 @@ func setDatastoreTypeByID(ds types.DatastoreConfig, status *types.ContentTreeSta
 	found := false
 	nrResolved := 0
 
+	log.Errorf("XXX setDatastoreTypeByID(ContentID=%s): ds.UUID=%s",
+		status.ContentID, ds.UUID)
+
 	// Find datastore by an ID and count resolved datastores
 	for i, dsid := range status.DatastoreIDList {
 		tptr := &status.DatastoreTypesList[i]
+
+		log.Errorf("XXX      #i=%d: dsid=%s, tptr='%s'", i, dsid, *tptr)
 
 		// Assign a type if datastores's ID matches
 		if dsid == ds.UUID {
@@ -793,8 +798,8 @@ func setDatastoreTypeByID(ds types.DatastoreConfig, status *types.ContentTreeSta
 				status.IsOCIRegistry = true
 			}
 
-			log.Functionf("Setting datastore type %s for datastore %s on ContentTreeStatus %s",
-				ds.DsType, ds.UUID, status.Key())
+			log.Errorf("XXX:     #i=%d setting datastore type %s for datastore %s on ContentTreeStatus %s",
+				i, ds.DsType, ds.UUID, status.Key())
 		}
 
 		// Account resolved datastore
@@ -803,13 +808,15 @@ func setDatastoreTypeByID(ds types.DatastoreConfig, status *types.ContentTreeSta
 		}
 	}
 	status.AllDatastoresResolved = (nrResolved == nr)
+	log.Errorf("XXX setDatastoreTypeByID(END): nrresolved=%d nr=%d",
+		nrResolved, nr)
 
 	return found && status.AllDatastoresResolved
 }
 
 // updateStatusByDatastore update any datastore missing status
 func updateStatusByDatastore(ctx *volumemgrContext, datastore types.DatastoreConfig) {
-	log.Functionf("updateStatusByDatastore(%s)", datastore.UUID)
+	log.Errorf("XXX updateStatusByDatastore(%s)", datastore.UUID)
 	pub := ctx.pubContentTreeStatus
 	items := pub.GetAll()
 	for _, st := range items {
@@ -843,6 +850,27 @@ func updateContentTreeStatus(ctx *volumemgrContext, contentSha256 string, conten
 		if status.ContentSha256 == contentSha256 {
 			log.Functionf("Found ContentTreeStatus %s",
 				status.Key())
+
+			/*
+			nrResolved := 0
+			nr := len(status.DatastoreIDList)
+			for i, dsid := range status.DatastoreIDList {
+				datastore, err := utils.LookupDatastoreConfig(ctx.subDatastoreConfig, dsid)
+				if err != nil {
+					continue
+				}
+				resolved := setDatastoreTypeByID(datastore, &status)
+				if !resolved {
+					continue
+				}
+
+				nrResolved++
+			}
+			if nr != nrResolved {
+				continue
+			}
+			*/
+
 			found = true
 			changed, _ := doUpdateContentTree(ctx, &status)
 			if changed {

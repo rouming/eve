@@ -38,10 +38,14 @@ func stringsToUuids(strings []string) ([]uuid.UUID, error) {
 // getDatastoreIDList() - returns list of datastores UUIDs
 func getDatastoreIDList(contentTree *zconfig.ContentTree) ([]uuid.UUID, error) {
 	idsStrList := contentTree.GetDsIdsList()
+	//XXX idsStrList = append([]string{"38c210fc-1dcd-456c-bab5-d9859d668075"}, idsStrList...)
 	if len(idsStrList) == 0 {
 		// Compatibility with the old controller, which does not support
 		// list of datastores
 		idsStrList = []string{contentTree.GetDsId()}
+		log.Errorf("getDatastoreIDList(): GETDSIDSLIST EMPTY\n")
+	} else {
+		log.Errorf("getDatastoreIDList(): GETDSIDSLIST: %v\n", idsStrList)
 	}
 	return stringsToUuids(idsStrList)
 }
@@ -49,6 +53,8 @@ func getDatastoreIDList(contentTree *zconfig.ContentTree) ([]uuid.UUID, error) {
 // content info parsing routine
 func parseContentInfoConfig(ctx *getconfigContext,
 	config *zconfig.EdgeDevConfig) {
+
+	log.Errorf("XXX: PARSECONFIG: PARSECONTENTINFOCONFIG")
 
 	log.Tracef("Started parsing content info config")
 	cfgContentTreeList := config.GetContentInfo()
