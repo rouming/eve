@@ -494,23 +494,10 @@ func myPost(zedcloudCtx *zedcloud.ZedCloudContext, tlsConfig *tls.Config,
 	rv, err := zedcloud.SendOnAllIntf(ctxWork, zedcloudCtx, requrl, reqlen, b, retryCount,
 		bailOnHTTPErr, withNetTrace)
 	if err != nil {
-		switch rv.Status {
-		case types.SenderStatusUpgrade:
-			log.Functionf("Controller upgrade in progress")
-		case types.SenderStatusRefused:
-			log.Functionf("Controller returned ECONNREFUSED")
-		case types.SenderStatusCertInvalid:
-			log.Warnf("Controller certificate invalid time")
-		case types.SenderStatusCertMiss:
-			log.Functionf("Controller certificate miss")
-		case types.SenderStatusNotFound:
-			if !zedcloudCtx.NoLedManager {
-				// Inform ledmanager about cloud connectivity
-				utils.UpdateLedManagerConfig(log,
-					types.LedBlinkConnectedToController)
-			}
-		default:
-			log.Error(err)
+		log.Errorf("%s, err %v", rv.Status.String(), err)
+		if rv.Status == types.SenderStatusNotFound && !zedcloudCtx.NoLedManager {
+			// Inform ledmanager about cloud connectivity
+			utils.UpdateLedManagerConfig(log, types.LedBlinkConnectedToController)
 		}
 		return false, rv
 	}
