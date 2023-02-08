@@ -2356,17 +2356,8 @@ func getDeferredSentHandlerFunction(ctx *zedagentContext) *zedcloud.SentHandlerF
 			}
 		} else {
 			if _, ok := itemType.(attest.ZAttestReqType); ok {
-				switch result {
-				case types.SenderStatusUpgrade:
-					log.Functionf("sendAttestReqProtobuf: Controller upgrade in progress")
-				case types.SenderStatusRefused:
-					log.Functionf("sendAttestReqProtobuf: Controller returned ECONNREFUSED")
-				case types.SenderStatusCertInvalid:
-					log.Warnf("sendAttestReqProtobuf: Controller certificate invalid time")
-				case types.SenderStatusCertMiss:
-					log.Functionf("sendAttestReqProtobuf: Controller certificate miss")
-				case types.SenderStatusNotFound:
-					log.Functionf("sendAttestReqProtobuf: Controller SenderStatusNotFound")
+				log.Functionf("sendAttestReqProtobuf: %s", result.String())
+				if result == types.SenderStatusNotFound {
 					potentialUUIDUpdate(ctx.getconfigCtx)
 				}
 			}

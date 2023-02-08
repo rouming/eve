@@ -255,18 +255,7 @@ func getCertsFromController(ctx *zedagentContext, desc string) (success bool) {
 	rv, err := zedcloud.SendOnAllIntf(ctxWork, zedcloudCtx, certURL, 0, nil, 0,
 		bailOnHTTPErr, withNetTracing)
 	if err != nil {
-		switch rv.Status {
-		case types.SenderStatusUpgrade:
-			log.Noticef("getCertsFromController: Controller upgrade in progress")
-		case types.SenderStatusRefused:
-			log.Noticef("getCertsFromController: Controller returned ECONNREFUSED")
-		case types.SenderStatusCertInvalid:
-			log.Warnf("getCertsFromController: Controller certificate invalid time")
-		case types.SenderStatusCertMiss:
-			log.Noticef("getCertsFromController: Controller certificate miss")
-		default:
-			log.Errorf("getCertsFromController failed: %s", err)
-		}
+		log.Errorf("getCertsFromController: %s, failed: %s", rv.Status.String(), err)
 		return false
 	}
 
