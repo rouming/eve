@@ -505,23 +505,10 @@ func getLatestConfig(getconfigCtx *getconfigContext, url string,
 	rv, err := zedcloud.SendOnAllIntf(
 		ctxWork, zedcloudCtx, url, size, buf, iteration, bailOnHTTPErr, withNetTracing)
 	if err != nil {
+		log.Errorf("getLatestConfig: %s, failed: %s", rv.Status.String(), err)
+
 		newCount := types.LedBlinkConnectingToController
-		switch rv.Status {
-		case types.SenderStatusUpgrade:
-			log.Functionf("getLatestConfig : Controller upgrade in progress")
-		case types.SenderStatusRefused:
-			log.Functionf("getLatestConfig : Controller returned ECONNREFUSED")
-		case types.SenderStatusCertInvalid:
-			log.Warnf("getLatestConfig : Controller certificate invalid time")
-		case types.SenderStatusCertMiss:
-			log.Functionf("getLatestConfig : Controller certificate miss")
-		case types.SenderStatusNotFound:
-			log.Functionf("getLatestConfig : Device deleted in controller?")
-		case types.SenderStatusForbidden:
-			log.Functionf("getLatestConfig : Device integrity token mismatch")
-		default:
-			log.Errorf("getLatestConfig  failed: %s", err)
-		}
+
 		switch rv.Status {
 		case types.SenderStatusCertInvalid:
 			// trigger to acquire new controller certs from cloud

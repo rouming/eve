@@ -1052,26 +1052,8 @@ func myGet(ctx *diagContext, reqURL string, ifname string,
 	rv, err := zedcloud.SendOnIntf(context.Background(), zedcloudCtx, reqURL, ifname,
 		0, nil, allowProxy, ctx.usingOnboardCert, withNetTracing, false)
 	if err != nil {
-		switch rv.Status {
-		case types.SenderStatusUpgrade:
-			fmt.Fprintf(outfile, "ERROR: %s: get %s Controller upgrade in progress\n",
-				ifname, reqURL)
-		case types.SenderStatusRefused:
-			fmt.Fprintf(outfile, "ERROR: %s: get %s Controller returned ECONNREFUSED\n",
-				ifname, reqURL)
-		case types.SenderStatusCertInvalid:
-			fmt.Fprintf(outfile, "ERROR: %s: get %s Controller certificate invalid time\n",
-				ifname, reqURL)
-		case types.SenderStatusCertMiss:
-			fmt.Fprintf(outfile, "ERROR: %s: get %s Controller certificate miss\n",
-				ifname, reqURL)
-		case types.SenderStatusNotFound:
-			fmt.Fprintf(outfile, "ERROR: %s: get %s Did controller delete the device?\n",
-				ifname, reqURL)
-		default:
-			fmt.Fprintf(outfile, "ERROR: %s: get %s failed: %s\n",
-				ifname, reqURL, err)
-		}
+		fmt.Fprintf(outfile, "ERROR: %s, %s: %s, failed: %v",
+			ifname, reqURL, rv.Status.String(), err)
 		return false, nil, nil
 	}
 
@@ -1116,23 +1098,8 @@ func myPost(ctx *diagContext, reqURL string, ifname string,
 	rv, err := zedcloud.SendOnIntf(context.Background(), zedcloudCtx,
 		reqURL, ifname, reqlen, b, allowProxy, ctx.usingOnboardCert, withNetTracing, false)
 	if err != nil {
-		switch rv.Status {
-		case types.SenderStatusUpgrade:
-			fmt.Fprintf(outfile, "ERROR: %s: post %s Controller upgrade in progress\n",
-				ifname, reqURL)
-		case types.SenderStatusRefused:
-			fmt.Fprintf(outfile, "ERROR: %s: post %s Controller returned ECONNREFUSED\n",
-				ifname, reqURL)
-		case types.SenderStatusCertInvalid:
-			fmt.Fprintf(outfile, "ERROR: %s: post %s Controller certificate invalid time\n",
-				ifname, reqURL)
-		case types.SenderStatusCertMiss:
-			fmt.Fprintf(outfile, "ERROR: %s: post %s Controller certificate miss\n",
-				ifname, reqURL)
-		default:
-			fmt.Fprintf(outfile, "ERROR: %s: post %s failed: %s\n",
-				ifname, reqURL, err)
-		}
+		fmt.Fprintf(outfile, "ERROR: %s, %s: %s, failed: %v",
+			ifname, reqURL, rv.Status.String(), err)
 		return false, nil, rv.Status, nil
 	}
 
