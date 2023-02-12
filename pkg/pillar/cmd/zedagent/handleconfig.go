@@ -570,6 +570,22 @@ func requestConfigByURL(getconfigCtx *getconfigContext, url string, iteration in
 	return configOK, rv
 }
 
+func requestConfigMultipleSource(getconfigCtx *getconfigContext, iteration int,
+	withNetTracing bool) (configProcessingRetval, zedcloud.SendRetval) {
+
+	mainUrl := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API,
+		devUUID, "config")
+	
+	locUrl := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API,
+		devUUID, "config")
+
+
+	cfgRetval, rv := requestConfigByURL(getconfigCtx, url, iteration,
+		withNetTracing)
+
+
+}
+
 func updateLedBlinkCount(ctx *getconfigContext, cfgRetval configProcessingRetval) {
 	count := types.LedBlinkConnectedToController
 
@@ -586,11 +602,7 @@ func updateLedBlinkCount(ctx *getconfigContext, cfgRetval configProcessingRetval
 func getLatestConfig(getconfigCtx *getconfigContext, iteration int,
 	withNetTracing bool) (configProcessingRetval, []netdump.TracedNetRequest) {
 
-	// In case devUUID changed we re-generate
-	url := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API,
-		devUUID, "config")
-
-	cfgRetval, rv := requestConfigByURL(getconfigCtx, url, iteration,
+	cfgRetval, rv := requestConfigMultipleSource(getconfigCtx, iteration,
 		withNetTracing)
 
 	if cfgRetval == configReqFailed {
