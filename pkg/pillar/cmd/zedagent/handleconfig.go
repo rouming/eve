@@ -584,15 +584,11 @@ func updateLedBlinkCount(ctx *getconfigContext, cfgRetval configProcessingRetval
 	utils.UpdateLedManagerConfig(log, count)
 }
 
-func getLatestConfig(getconfigCtx *getconfigContext, iteration int,
+func requestConfig(getconfigCtx *getconfigContext, url string, iteration int,
 	withNetTracing bool) (configProcessingRetval, []netdump.TracedNetRequest) {
 
-	// In case devUUID changed we re-generate
-	url := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API,
-		devUUID, "config")
-
-	cfgRetval, rv := requestConfigByURL(getconfigCtx, url, iteration,
-		withNetTracing)
+	cfgRetval, rv := requestConfigByURL(getconfigCtx, url,
+		iteration, withNetTracing)
 
 	if cfgRetval == configReqFailed {
 		zedagentCtx := getconfigCtx.zedagentCtx
@@ -684,6 +680,36 @@ publishStatusAndReturn:
 	publishZedAgentStatus(getconfigCtx)
 
 	return cfgRetval, rv.TracedReqs
+}
+
+// Returns true if attempt to get a configugration has failed, but initial
+// configuration was received (either from the controller, either successfully
+// read from the file)
+func needRequestLocConfig(getconfigCtx *getconfigContext,
+	rv configProcessingRetval) bool {
+
+	return (rv != configOK && getconfigCtx.locConfig != nil)
+}
+
+func getLatestConfig(getconfigCtx *getconfigContext, iteration int,
+	withNetTracing bool) (configProcessingRetval, []netdump.TracedNetRequest) {
+
+	url := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API,
+		devUUID, "config")
+
+	rv, tracedReqs := requestConfig(getconfigCtx, url, iteration, withNetTracing)
+
+	// Request configiguration from the LOC
+	if needRequestLocConfig(getconfigCtx, rv) {
+		locUrl := getconfigCtx.locConfig.LocUrl
+		url = zedcloud.URLPathString(locUrl, zedcloudCtx.V2API, devUUID, "config")
+
+		// If LOC configuration is outdated, then we get obsoleteConfig return
+		// value (see parseConfig() for details) and w
+		rv, tracedReqs = requestConfig(getconfigCtx, url, iteration, withNetTracing)
+	}
+
+	return rv, tracedReqs
 }
 
 func saveReceivedProtoMessage(contents []byte) {
