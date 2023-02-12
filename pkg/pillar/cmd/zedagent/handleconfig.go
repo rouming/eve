@@ -510,7 +510,7 @@ func getLatestConfig(getconfigCtx *getconfigContext, url string,
 		newCount := types.LedBlinkConnectingToController
 
 		switch rv.Status {
-		case types.SenderStatusCertInvalid:
+		case types.SenderStatusCertInvalid, types.SenderStatusCertMiss:
 			// trigger to acquire new controller certs from cloud
 			log.Noticef("%s trigger", rv.Status.String())
 			triggerControllerCertEvent(ctx)
@@ -522,10 +522,6 @@ func getLatestConfig(getconfigCtx *getconfigContext, url string,
 				log.Warnf("remoteTemporaryFailure don't fail update")
 				getconfigCtx.configGetStatus = types.ConfigGetTemporaryFail
 			}
-		case types.SenderStatusCertMiss:
-			// trigger to acquire new controller certs from cloud
-			log.Noticef("%s trigger", rv.Status.String())
-			triggerControllerCertEvent(ctx)
 		}
 		if getconfigCtx.ledBlinkCount == types.LedBlinkOnboarded {
 			// Inform ledmanager about loss of config from cloud
