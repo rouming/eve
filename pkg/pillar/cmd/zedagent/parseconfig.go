@@ -146,16 +146,13 @@ func parseConfig(getconfigCtx *getconfigContext, config *zconfig.EdgeDevConfig,
 			parseNetworkInstanceConfig(getconfigCtx, config)
 			parseContentInfoConfig(getconfigCtx, config)
 			parseVolumeConfig(getconfigCtx, config)
-
 			// parseProfile must be called before processing of app instances from config
 			parseProfile(getconfigCtx, config)
 			parseAppInstanceConfig(getconfigCtx, config)
-
 			parseEvConfig(getconfigCtx, config)
-
 			parseDisksConfig(getconfigCtx, config)
-
 			parseEdgeNodeInfo(getconfigCtx, config)
+			parseLocConfig(getconfigCtx, config)
 		}
 
 		getconfigCtx.lastProcessedConfig = getconfigCtx.lastReceivedConfig
@@ -2510,6 +2507,17 @@ func parseOpCmds(getconfigCtx *getconfigContext,
 	reboot := scheduleDeviceOperation(getconfigCtx, config.GetReboot(), types.DeviceOperationReboot)
 	shutdown := scheduleDeviceOperation(getconfigCtx, config.GetShutdown(), types.DeviceOperationShutdown)
 	return reboot, shutdown
+}
+
+// parseLocConfig() - assign LOC config only if URL is valid
+func parseLocConfig(getconfigCtx *getconfigContext,
+	config *zconfig.EdgeDevConfig) {
+	locConfig := config.GetLocConfig()
+	if locConfig != nil && len(locConfig.LocUrl) > 0 {
+		getconfigCtx.locConfig = &types.LOCConfig{
+			LocUrl: locConfig.LocUrl,
+		}
+	}
 }
 
 func removeDeviceOpsCmdConfig(op types.DeviceOperation) {
