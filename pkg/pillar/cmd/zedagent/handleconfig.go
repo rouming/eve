@@ -571,22 +571,6 @@ func requestConfigByURL(getconfigCtx *getconfigContext, url string, iteration in
 	return configOK, rv
 }
 
-func requestConfigMultipleSource(getconfigCtx *getconfigContext, iteration int,
-	withNetTracing bool) (configProcessingRetval, zedcloud.SendRetval) {
-
-	mainUrl := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API,
-		devUUID, "config")
-	
-	locUrl := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API,
-		devUUID, "config")
-
-
-	cfgRetval, rv := requestConfigByURL(getconfigCtx, url, iteration,
-		withNetTracing)
-
-
-}
-
 func updateLedBlinkCount(ctx *getconfigContext, cfgRetval configProcessingRetval) {
 	count := types.LedBlinkConnectedToController
 
@@ -603,8 +587,11 @@ func updateLedBlinkCount(ctx *getconfigContext, cfgRetval configProcessingRetval
 func getLatestConfig(getconfigCtx *getconfigContext, iteration int,
 	withNetTracing bool) (configProcessingRetval, []netdump.TracedNetRequest) {
 
-	cfgRetval, rv := requestConfigMultipleSource(getconfigCtx, iteration,
-		withNetTracing)
+	url := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API,
+		devUUID, "config")
+
+	cfgRetval, rv := //requestConfigMultipleSource(getconfigCtx, iteration,
+		requestConfigByURL(getconfigCtx, url, iteration, withNetTracing)
 
 	if cfgRetval == configReqFailed {
 		zedagentCtx := getconfigCtx.zedagentCtx
@@ -696,6 +683,33 @@ publishStatusAndReturn:
 	publishZedAgentStatus(getconfigCtx)
 
 	return cfgRetval, rv.TracedReqs
+}
+
+
+func getLatestConfig(getconfigCtx *getconfigContext, iteration int,
+	withNetTracing bool) (configProcessingRetval, []netdump.TracedNetRequest) {
+
+	rv, tracedReqs := getLatestConfig(getconfigCtx, iteration, withNetTracing)
+	if rv != configOK && getconfigCtx.locConfig {
+		locUrl := getconfigCtx.locConfig.LocUrl
+
+		//XXX BUILD URL
+		url := zedcloud.URLPathString(locUrl, zedcloudCtx.V2API, devUUID, "config")
+
+		cfgRetval, rv := requestConfigByURL(getconfigCtx, url, iteration, withNetTracing)
+
+
+
+
+		if getconfigCtx.lastConfigTimestamp.After(configTimestamp) {
+			log.Warnf("Skipping obsolete device configuration "+
+				"(source: %v, timestamp: %v, currently applied: %v)",
+				source, configTimestamp, getconfigCtx.lastConfigTimestamp)
+			return obsoleteConfig
+		}
+	}
+
+	return rv, tracedReqs
 }
 
 func saveReceivedProtoMessage(contents []byte) {
