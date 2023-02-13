@@ -859,7 +859,7 @@ func publishMetrics(ctx *zedagentContext, iteration int) {
 	createProcessMetrics(ctx, ReportMetrics)
 
 	log.Tracef("PublishMetricsToZedCloud sending %s", ReportMetrics)
-	SendMetricsProtobuf(ctx.getconfigCtx, ReportMetrics, iteration)
+	sendMetricsProtobuf(ctx.getconfigCtx, ReportMetrics, iteration)
 	log.Tracef("publishMetrics: after send, total elapse sec %v", time.Since(startPubTime).Seconds())
 
 	// publish the cloud MetricsMap for zedagent for device debugging purpose
@@ -1536,8 +1536,9 @@ func SendProtobuf(url string, buf *bytes.Buffer, size int64,
 // Try all (first free, then rest) until it gets through.
 // Each iteration we try a different port for load spreading.
 // For each port we try all its local IP addresses until we get a success.
-func SendMetricsProtobuf(ctx *getconfigContext, ReportMetrics *metrics.ZMetricMsg,
-	iteration int) {
+func sendMetricsProtobufByUrl(ctx *getconfigContext, metricsUrl string,
+	ReportMetrics *metrics.ZMetricMsg, iteration int) {
+
 	data, err := proto.Marshal(ReportMetrics)
 	if err != nil {
 		log.Fatal("SendInfoProtobufStr proto marshaling error: ", err)
@@ -1545,7 +1546,6 @@ func SendMetricsProtobuf(ctx *getconfigContext, ReportMetrics *metrics.ZMetricMs
 
 	buf := bytes.NewBuffer(data)
 	size := int64(proto.Size(ReportMetrics))
-	metricsUrl := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "metrics")
 	const bailOnHTTPErr = false
 	const withNetTrace = false
 	ctxWork, cancel := zedcloud.GetContextForAllIntfFunctions(zedcloudCtx)
@@ -1559,6 +1559,21 @@ func SendMetricsProtobuf(ctx *getconfigContext, ReportMetrics *metrics.ZMetricMs
 	} else {
 		maybeUpdateMetricsTimer(ctx, true)
 		saveSentMetricsProtoMessage(data)
+	}
+}
+
+func sendMetricsProtobuf(ctx *getconfigContext,
+	ReportMetrics *metrics.ZMetricMsg, iteration int) {
+
+	url := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API,
+		devUUID, "metrics")
+	sendMetricsProtobufByUrl(ctx, url, ReportMetrics, iteration)
+
+	// Repeat metrics for LOC as well
+	if ctx.locConfig != nil {
+		url := zedcloud.URLPathString(ctx.locConfig.LocUrl, zedcloudCtx.V2API,
+			devUUID, "metrics")
+		sendMetricsProtobufByUrl(ctx, url, ReportMetrics, iteration)
 	}
 }
 
