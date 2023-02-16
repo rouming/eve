@@ -70,7 +70,7 @@ func locationTimerTask(ctx *zedagentContext, handleChannel chan interface{},
 			}
 			start := time.Now()
 			cloudIteration++
-			publishLocationToController(locInfo, cloudIteration, dest)
+			PublishLocationInfo(ctx, locInfo, cloudIteration, dest)
 			ctx.ps.CheckMaxTimeTopic(wdName, "publishLocationToController", start,
 				warningTime, errorTime)
 
@@ -81,7 +81,7 @@ func locationTimerTask(ctx *zedagentContext, handleChannel chan interface{},
 				break
 			}
 			start := time.Now()
-			publishLocationToLocalServer(ctx.getconfigCtx, locInfo)
+			PublishLocationInfo(ctx, locInfo, 0, LocalServerDest)
 			ctx.ps.CheckMaxTimeTopic(wdName, "publishLocationToLocalServer", start,
 				warningTime, errorTime)
 
@@ -125,7 +125,7 @@ func updateLocationAppTimer(ctx *getconfigContext, appInterval uint32) {
 	flextimer.TickNow(ctx.locationAppTickerHandle)
 }
 
-func publishLocationToController(locInfo *info.ZInfoLocation, iteration int, dest infoDest) {
+func publishLocationInfo(locInfo *info.ZInfoLocation, iteration int, infoUrl string) {
 	log.Functionf("publishLocationToController: iteration %d", iteration)
 	infoMsg := &info.ZInfoMsg{
 		Ztype: info.ZInfoTypes_ZiLocation,
@@ -141,8 +141,6 @@ func publishLocationToController(locInfo *info.ZInfoLocation, iteration int, des
 	if err != nil {
 		log.Fatal("publishLocationToController: proto marshaling error: ", err)
 	}
-	infoURL := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API,
-		devUUID, "info")
 
 	buf := bytes.NewBuffer(data)
 	if buf == nil {
@@ -154,7 +152,7 @@ func publishLocationToController(locInfo *info.ZInfoLocation, iteration int, des
 	const withNetTrace = false
 	ctxWork, cancel := zedcloud.GetContextForAllIntfFunctions(zedcloudCtx)
 	defer cancel()
-	rv, err := zedcloud.SendOnAllIntf(ctxWork, zedcloudCtx, infoURL,
+	rv, err := zedcloud.SendOnAllIntf(ctxWork, zedcloudCtx, infoUrl,
 		size, buf, iteration, bailOnHTTPErr, withNetTrace)
 	if err != nil {
 		// Hopefully next timeout will be more successful
@@ -227,6 +225,24 @@ func publishLocationToLocalServer(ctx *getconfigContext, locInfo *info.ZInfoLoca
 	log.Errorf("publishLocationToLocalServer: all attempts failed: %s",
 		strings.Join(errList, ";"))
 	return
+}
+
+func PublishLocationInfo(ctx *zedagentContext, locInfo *info.ZInfoLocation,
+	iteration int, dest infoDest) {
+
+	locConfig := ctx.getconfigCtx.locConfig
+
+	if dest & ControllerDest != 0 {
+		url := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
+		publishLocationInfo(locInfo, iteration, url)
+	}
+	if dest & LocalServerDest != 0 {
+		publishLocationToLocalServer(ctx.getconfigCtx, locInfo)
+	}
+	if dest & LOCDest != 0 && locConfig != nil {
+		url := zedcloud.URLPathString(locConfig.LocUrl, zedcloudCtx.V2API, devUUID, "info")
+		publishLocationInfo(locInfo, iteration, url)
+	}
 }
 
 func getLocationInfo(ctx *zedagentContext) *info.ZInfoLocation {
