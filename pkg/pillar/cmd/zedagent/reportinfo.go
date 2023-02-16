@@ -159,7 +159,7 @@ func objectInfoTask(ctxPtr *zedagentContext, triggerInfo <-chan infoForObjectKey
 				sub := ctxPtr.subEdgeviewStatus
 				if c, err = sub.Get(infoForKeyMessage.objectKey); err == nil {
 					evStatus := c.(types.EdgeviewStatus)
-					PublishEdgeviewToZedCloud(ctxPtr, &evStatus, infoDest)
+					PublishEdgeviewInfo(ctxPtr, &evStatus, infoDest)
 				}
 			case info.ZInfoTypes_ZiLocation:
 				locInfo := getLocationInfo(ctxPtr)

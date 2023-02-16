@@ -2471,7 +2471,7 @@ func handleEdgeviewStatusModify(ctxArg interface{}, key string,
 func handleEdgeviewStatusImpl(ctxArg interface{}, key string, statusArg interface{}) {
 	status := statusArg.(types.EdgeviewStatus)
 	ctx := ctxArg.(*zedagentContext)
-	PublishEdgeviewToZedCloud(ctx, &status, AllDest)
+	PublishEdgeviewInfo(ctx, &status, AllDest)
 }
 
 func reinitNetdumper(ctx *zedagentContext) {

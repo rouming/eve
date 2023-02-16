@@ -1484,11 +1484,11 @@ func PublishBlobInfo(ctx *zedagentContext, blobSha string,
 	}
 }
 
-// PublishEdgeviewToZedCloud - publish Edgeview info to controller
-func PublishEdgeviewToZedCloud(ctx *zedagentContext,
-	evStatus *types.EdgeviewStatus, dest infoDest) {
+// publishEdgeviewInfo - publish Edgeview info to controller
+func publishEdgeviewInfo(ctx *zedagentContext,
+	evStatus *types.EdgeviewStatus, statusUrl string) {
 
-	log.Functionf("PublishEdgeviewToZedCloud")
+	log.Functionf("publishEdgeviewInfo")
 	var ReportInfo = &info.ZInfoMsg{}
 
 	evType := new(info.ZInfoTypes)
@@ -1513,13 +1513,12 @@ func PublishEdgeviewToZedCloud(ctx *zedagentContext,
 		x.Evinfo = ReportEvInfo
 	}
 
-	log.Functionf("PublishEdgeviewToZedCloud sending %v", ReportInfo)
+	log.Functionf("publishEdgeviewInfo sending %v", ReportInfo)
 
 	data, err := proto.Marshal(ReportInfo)
 	if err != nil {
-		log.Fatal("PublishEdgeviewToZedCloud proto marshaling error: ", err)
+		log.Fatal("publishEdgeviewInfo proto marshaling error: ", err)
 	}
-	statusURL := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
 
 	buf := bytes.NewBuffer(data)
 	if buf == nil {
@@ -1530,10 +1529,25 @@ func PublishEdgeviewToZedCloud(ctx *zedagentContext,
 	//We queue the message and then get the highest priority message to send.
 	//If there are no failures and defers we'll send this message,
 	//but if there is a queue we'll retry sending the highest priority message.
-	zedcloud.SetDeferred(zedcloudCtx, "global", buf, size, statusURL,
+	zedcloud.SetDeferred(zedcloudCtx, "global", buf, size, statusUrl,
 		true, false, info.ZInfoTypes_ZiEdgeview)
 	zedcloud.HandleDeferred(zedcloudCtx, time.Now(), 0, true)
 	ctx.iteration++
+}
+
+func PublishEdgeviewInfo(ctx *zedagentContext,
+	evStatus *types.EdgeviewStatus, dest infoDest) {
+
+	locConfig := ctx.getconfigCtx.locConfig
+
+	if dest & ControllerDest != 0 {
+		url := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
+		publishEdgeviewInfo(ctx, evStatus, url)
+	}
+	if dest & LOCDest != 0 && locConfig != nil {
+		url := zedcloud.URLPathString(locConfig.LocUrl, zedcloudCtx.V2API, devUUID, "info")
+		publishEdgeviewInfo(ctx, evStatus, url)
+	}
 }
 
 func appIfnameToNetworkInstance(ctx *zedagentContext,
