@@ -28,7 +28,8 @@ const (
 )
 
 // Run a periodic post of the location information.
-func locationTimerTask(ctx *zedagentContext, handleChannel chan interface{}) {
+func locationTimerTask(ctx *zedagentContext, handleChannel chan interface{},
+	triggerCloudLocationInfo chan infoDest) {
 	var cloudIteration int
 
 	// Ticker for periodic publishing to the controller.
@@ -59,6 +60,9 @@ func locationTimerTask(ctx *zedagentContext, handleChannel chan interface{}) {
 	for {
 		select {
 		case <-cloudTicker.C:
+			// Loopback the destination, will be fetched on the next iteration
+			triggerCloudLocationInfo <- AllDest
+		case dest := <-triggerCloudLocationInfo:
 			locInfo := getLocationInfo(ctx)
 			if locInfo == nil {
 				// Not available.
@@ -66,7 +70,7 @@ func locationTimerTask(ctx *zedagentContext, handleChannel chan interface{}) {
 			}
 			start := time.Now()
 			cloudIteration++
-			publishLocationToController(locInfo, cloudIteration)
+			publishLocationToController(locInfo, cloudIteration, dest)
 			ctx.ps.CheckMaxTimeTopic(wdName, "publishLocationToController", start,
 				warningTime, errorTime)
 
@@ -121,7 +125,7 @@ func updateLocationAppTimer(ctx *getconfigContext, appInterval uint32) {
 	flextimer.TickNow(ctx.locationAppTickerHandle)
 }
 
-func publishLocationToController(locInfo *info.ZInfoLocation, iteration int) {
+func publishLocationToController(locInfo *info.ZInfoLocation, iteration int, dest infoDest) {
 	log.Functionf("publishLocationToController: iteration %d", iteration)
 	infoMsg := &info.ZInfoMsg{
 		Ztype: info.ZInfoTypes_ZiLocation,
