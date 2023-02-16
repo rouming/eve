@@ -44,7 +44,7 @@ func handleNetworkInstanceImpl(ctxArg interface{}, key string,
 		log.Errorf("Received NetworkInstance error %s",
 			status.Error)
 	}
-	prepareAndPublishNetworkInstanceInfoMsg(ctx, status, false, AllDest)
+	PublishNetworkInstanceInfo(ctx, status, false, AllDest)
 	log.Functionf("handleNetworkInstanceImpl(%s) done", key)
 }
 
@@ -54,19 +54,19 @@ func handleNetworkInstanceDelete(ctxArg interface{}, key string,
 	log.Functionf("handleNetworkInstanceDelete(%s)", key)
 	status := statusArg.(types.NetworkInstanceStatus)
 	ctx := ctxArg.(*zedagentContext)
-	prepareAndPublishNetworkInstanceInfoMsg(ctx, status, true, AllDest)
+	PublishNetworkInstanceInfo(ctx, status, true, AllDest)
 	log.Functionf("handleNetworkInstanceDelete(%s) done", key)
 }
 
-// prepareAndPublishNetworkInstanceInfoMsg sends a message
+// publishNetworkInstanceInfo sends a message
 // which is mostly empty if deleted is set as a delete indication.
 // XXX When a network instance is deleted it is ideal to
 // send a flag such as deleted/gone inside
 // ZInfoNetworkInstance message. Having a separate flag
 // (indicating deletion) would make is explicit
 // and easy for the cloud process.
-func prepareAndPublishNetworkInstanceInfoMsg(ctx *zedagentContext,
-	status types.NetworkInstanceStatus, deleted bool, dest infoDest) {
+func publishNetworkInstanceInfo(ctx *zedagentContext,
+	status types.NetworkInstanceStatus, deleted bool, statusUrl string) {
 
 	infoMsg := &zinfo.ZInfoMsg{}
 	infoType := new(zinfo.ZInfoTypes)
@@ -170,7 +170,6 @@ func prepareAndPublishNetworkInstanceInfoMsg(ctx *zedagentContext,
 	if err != nil {
 		log.Fatal("Publish NetworkInstance proto marshaling error: ", err)
 	}
-	statusURL := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
 	buf := bytes.NewBuffer(data)
 	if buf == nil {
 		log.Fatal("malloc error")
@@ -180,9 +179,24 @@ func prepareAndPublishNetworkInstanceInfoMsg(ctx *zedagentContext,
 	//We queue the message and then get the highest priority message to send.
 	//If there are no failures and defers we'll send this message,
 	//but if there is a queue we'll retry sending the highest priority message.
-	zedcloud.SetDeferred(zedcloudCtx, uuid, buf, size, statusURL,
+	zedcloud.SetDeferred(zedcloudCtx, uuid, buf, size, statusUrl,
 		true, false, zinfo.ZInfoTypes_ZiNetworkInstance)
 	zedcloud.HandleDeferred(zedcloudCtx, time.Now(), 0, true)
+}
+
+func PublishNetworkInstanceInfo(ctx *zedagentContext,
+	status types.NetworkInstanceStatus, deleted bool, dest infoDest) {
+
+	locConfig := ctx.getconfigCtx.locConfig
+
+	if dest & ControllerDest != 0 {
+		url := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
+		publishNetworkInstanceInfo(ctx, status, deleted, url)
+	}
+	if dest & LOCDest != 0 && locConfig != nil {
+		url := zedcloud.URLPathString(locConfig.LocUrl, zedcloudCtx.V2API, devUUID, "info")
+		publishNetworkInstanceInfo(ctx, status, deleted, url)
+	}
 }
 
 func fillVpnInfo(info *zinfo.ZInfoNetworkInstance, vpnStatus *types.VpnStatus) {

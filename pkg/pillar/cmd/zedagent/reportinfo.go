@@ -108,8 +108,7 @@ func objectInfoTask(ctxPtr *zedagentContext, triggerInfo <-chan infoForObjectKey
 				sub := ctxPtr.subNetworkInstanceStatus
 				if c, err = sub.Get(infoForKeyMessage.objectKey); err == nil {
 					niStatus := c.(types.NetworkInstanceStatus)
-					prepareAndPublishNetworkInstanceInfoMsg(ctxPtr, niStatus,
-						false, infoDest)
+					PublishNetworkInstanceInfo(ctxPtr, niStatus, false, infoDest)
 					ctxPtr.iteration++
 				}
 			case info.ZInfoTypes_ZiVolume:
