@@ -59,7 +59,7 @@ func deviceInfoTask(ctxPtr *zedagentContext, triggerDeviceInfo <-chan infoDest) 
 			start := time.Now()
 			log.Function("deviceInfoTask got message")
 
-			PublishDeviceInfoToZedCloud(ctxPtr, dest)
+			PublishDeviceInfo(ctxPtr, dest)
 			ctxPtr.iteration++
 			log.Function("deviceInfoTask done with message")
 			ctxPtr.ps.CheckMaxTimeTopic(wdName, "PublishDeviceInfo", start,
@@ -91,7 +91,7 @@ func objectInfoTask(ctxPtr *zedagentContext, triggerInfo <-chan infoForObjectKey
 			switch infoType {
 			case info.ZInfoTypes_ZiDevice:
 				// publish device info
-				PublishDeviceInfoToZedCloud(ctxPtr, infoDest)
+				PublishDeviceInfo(ctxPtr, infoDest)
 				ctxPtr.iteration++
 			case info.ZInfoTypes_ZiApp:
 				// publish application info
@@ -205,8 +205,8 @@ func fillStorageChildren(children []*types.StorageChildren) []*info.StorageChild
 	return infoChildren
 }
 
-// PublishDeviceInfoToZedCloud This function is called per change, hence needs to try over all management ports
-func PublishDeviceInfoToZedCloud(ctx *zedagentContext, dest infoDest) {
+// publishDeviceInfo This function is called per change, hence needs to try over all management ports
+func publishDeviceInfo(ctx *zedagentContext, statusUrl string) {
 	aa := ctx.assignableAdapters
 	subBaseOsStatus := ctx.subBaseOsStatus
 
@@ -218,7 +218,7 @@ func PublishDeviceInfoToZedCloud(ctx *zedagentContext, dest infoDest) {
 	deviceUUID := devUUID.String()
 	ReportInfo.DevId = *proto.String(deviceUUID)
 	ReportInfo.AtTimeStamp = ptypes.TimestampNow()
-	log.Functionf("PublishDeviceInfoToZedCloud uuid %s", deviceUUID)
+	log.Functionf("publishDeviceInfo uuid %s", deviceUUID)
 
 	ReportDeviceInfo := new(info.ZInfoDevice)
 
@@ -641,13 +641,11 @@ func PublishDeviceInfoToZedCloud(ctx *zedagentContext, dest infoDest) {
 		}
 	}
 
-	log.Tracef("PublishDeviceInfoToZedCloud sending %v", ReportInfo)
+	log.Tracef("publishDeviceInfo sending %v", ReportInfo)
 	data, err := proto.Marshal(ReportInfo)
 	if err != nil {
-		log.Fatal("PublishDeviceInfoToZedCloud proto marshaling error: ", err)
+		log.Fatal("publishDeviceInfo proto marshaling error: ", err)
 	}
-
-	statusUrl := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
 
 	buf := bytes.NewBuffer(data)
 	if buf == nil {
@@ -662,6 +660,20 @@ func PublishDeviceInfoToZedCloud(ctx *zedagentContext, dest infoDest) {
 	zedcloud.SetDeferred(zedcloudCtx, deviceUUID, buf, size,
 		statusUrl, true, withNetTracing, info.ZInfoTypes_ZiDevice)
 	zedcloud.HandleDeferred(zedcloudCtx, time.Now(), 0, true)
+}
+
+func PublishDeviceInfo(ctx *zedagentContext, dest infoDest) {
+
+	locConfig := ctx.getconfigCtx.locConfig
+
+	if dest & ControllerDest != 0 {
+		url := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
+		publishDeviceInfo(ctx, url)
+	}
+	if dest & LOCDest != 0 && locConfig != nil {
+		url := zedcloud.URLPathString(locConfig.LocUrl, zedcloudCtx.V2API, devUUID, "info")
+		publishDeviceInfo(ctx, url)
+	}
 }
 
 // PublishAppInstMetaDataToZedCloud is called when an appInst reports its Metadata to EVE.
