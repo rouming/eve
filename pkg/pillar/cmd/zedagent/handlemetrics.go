@@ -1080,10 +1080,10 @@ func encodeNetworkPortConfig(ctx *zedagentContext,
 // This function is called per change, hence needs to try over all management ports
 // When aiStatus is nil it means a delete and we send a message
 // containing only the UUID to inform zedcloud about the delete.
-func PublishAppInfoToZedCloud(ctx *zedagentContext, uuid string,
-	aiStatus *types.AppInstanceStatus,
-	aa *types.AssignableAdapters, iteration int, dest infoDest) {
-	log.Functionf("PublishAppInfoToZedCloud uuid %s", uuid)
+func publishAppInfo(ctx *zedagentContext, uuid string,
+	aiStatus *types.AppInstanceStatus, aa *types.AssignableAdapters,
+	iteration int, statusUrl string) {
+	log.Functionf("publishAppInfo uuid %s", uuid)
 	var ReportInfo = &info.ZInfoMsg{}
 
 	appType := new(info.ZInfoTypes)
@@ -1197,14 +1197,12 @@ func PublishAppInfoToZedCloud(ctx *zedagentContext, uuid string,
 		x.Ainfo = ReportAppInfo
 	}
 
-	log.Functionf("PublishAppInfoToZedCloud sending %v", ReportInfo)
+	log.Functionf("publishAppInfo sending %v", ReportInfo)
 
 	data, err := proto.Marshal(ReportInfo)
 	if err != nil {
-		log.Fatal("PublishAppInfoToZedCloud proto marshaling error: ", err)
+		log.Fatal("publishAppInfo proto marshaling error: ", err)
 	}
-	statusUrl := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
-
 	buf := bytes.NewBuffer(data)
 	if buf == nil {
 		log.Fatal("malloc error")
@@ -1217,6 +1215,22 @@ func PublishAppInfoToZedCloud(ctx *zedagentContext, uuid string,
 	zedcloud.SetDeferred(zedcloudCtx, uuid, buf, size, statusUrl,
 		true, false, info.ZInfoTypes_ZiApp)
 	zedcloud.HandleDeferred(zedcloudCtx, time.Now(), 0, true)
+}
+
+func PublishAppInfo(ctx *zedagentContext, uuid string,
+	aiStatus *types.AppInstanceStatus, aa *types.AssignableAdapters,
+	iteration int, dest infoDest) {
+
+	locConfig := ctx.getconfigCtx.locConfig
+
+	if dest & ControllerDest != 0 {
+		url := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
+		publishAppInfo(ctx, uuid, aiStatus, aa, iteration, url)
+	}
+	if dest & LOCDest != 0 && locConfig != nil {
+		url := zedcloud.URLPathString(locConfig.LocUrl, zedcloudCtx.V2API, devUUID, "info")
+		publishAppInfo(ctx, uuid, aiStatus, aa, iteration, url)
+	}
 }
 
 // PublishContentInfoToZedCloud is called per change, hence needs to try over all management ports

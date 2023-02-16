@@ -1929,7 +1929,7 @@ func handleAppInstanceStatusCreate(ctxArg interface{}, key string,
 	log.Functionf("handleAppInstanceStatusCreate(%s)", key)
 	ctx := ctxArg.(*zedagentContext)
 	uuidStr := status.Key()
-	PublishAppInfoToZedCloud(ctx, uuidStr, &status, ctx.assignableAdapters,
+	PublishAppInfo(ctx, uuidStr, &status, ctx.assignableAdapters,
 		ctx.iteration, AllDest)
 	triggerPublishDevInfo(ctx)
 	processAppCommandStatus(ctx.getconfigCtx, status)
@@ -1948,7 +1948,7 @@ func handleAppInstanceStatusModify(ctxArg interface{}, key string,
 	log.Functionf("handleAppInstanceStatusModify(%s)", key)
 	ctx := ctxArg.(*zedagentContext)
 	uuidStr := status.Key()
-	PublishAppInfoToZedCloud(ctx, uuidStr, &status, ctx.assignableAdapters,
+	PublishAppInfo(ctx, uuidStr, &status, ctx.assignableAdapters,
 		ctx.iteration, AllDest)
 	processAppCommandStatus(ctx.getconfigCtx, status)
 	triggerLocalAppInfoPOST(ctx.getconfigCtx)
@@ -1962,7 +1962,7 @@ func handleAppInstanceStatusDelete(ctxArg interface{}, key string,
 	ctx := ctxArg.(*zedagentContext)
 	uuidStr := key
 	log.Functionf("handleAppInstanceStatusDelete(%s)", key)
-	PublishAppInfoToZedCloud(ctx, uuidStr, nil, ctx.assignableAdapters,
+	PublishAppInfo(ctx, uuidStr, nil, ctx.assignableAdapters,
 		ctx.iteration, AllDest)
 	triggerPublishDevInfo(ctx)
 	triggerLocalAppInfoPOST(ctx.getconfigCtx)

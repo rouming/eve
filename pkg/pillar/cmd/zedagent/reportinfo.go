@@ -99,7 +99,7 @@ func objectInfoTask(ctxPtr *zedagentContext, triggerInfo <-chan infoForObjectKey
 				if c, err = sub.Get(infoForKeyMessage.objectKey); err == nil {
 					appStatus := c.(types.AppInstanceStatus)
 					uuidStr := appStatus.Key()
-					PublishAppInfoToZedCloud(ctxPtr, uuidStr, &appStatus, ctxPtr.assignableAdapters,
+					PublishAppInfo(ctxPtr, uuidStr, &appStatus, ctxPtr.assignableAdapters,
 						ctxPtr.iteration, infoDest)
 					ctxPtr.iteration++
 				}
