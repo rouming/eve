@@ -1410,12 +1410,12 @@ func PublishVolumeInfo(ctx *zedagentContext, uuid string,
 	}
 }
 
-// PublishBlobInfoToZedCloud is called per change, hence needs to try over all management ports
+// publishBlobInfo is called per change, hence needs to try over all management ports
 // When blob Status is nil it means a delete and we send a message
 // containing only the UUID to inform zedcloud about the delete.
-func PublishBlobInfoToZedCloud(ctx *zedagentContext, blobSha string,
-	blobStatus *types.BlobStatus, iteration int, dest infoDest) {
-	log.Functionf("PublishBlobInfoToZedCloud blobSha %v", blobSha)
+func publishBlobInfo(ctx *zedagentContext, blobSha string,
+	blobStatus *types.BlobStatus, iteration int, statusUrl string) {
+	log.Functionf("publishBlobInfo blobSha %v", blobSha)
 	var ReportInfo = &info.ZInfoMsg{}
 
 	contentType := new(info.ZInfoTypes)
@@ -1448,13 +1448,12 @@ func PublishBlobInfoToZedCloud(ctx *zedagentContext, blobSha string,
 		blobInfoList.Binfo = ReportBlobInfoList
 	}
 
-	log.Functionf("PublishBlobInfoToZedCloud sending %v", ReportInfo)
+	log.Functionf("publishBlobInfo sending %v", ReportInfo)
 
 	data, err := proto.Marshal(ReportInfo)
 	if err != nil {
-		log.Fatal("PublishBlobInfoToZedCloud proto marshaling error: ", err)
+		log.Fatal("publishBlobInfo proto marshaling error: ", err)
 	}
-	statusURL := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
 
 	buf := bytes.NewBuffer(data)
 	if buf == nil {
@@ -1465,9 +1464,24 @@ func PublishBlobInfoToZedCloud(ctx *zedagentContext, blobSha string,
 	//We queue the message and then get the highest priority message to send.
 	//If there are no failures and defers we'll send this message,
 	//but if there is a queue we'll retry sending the highest priority message.
-	zedcloud.SetDeferred(zedcloudCtx, blobSha, buf, size, statusURL,
+	zedcloud.SetDeferred(zedcloudCtx, blobSha, buf, size, statusUrl,
 		true, false, info.ZInfoTypes_ZiBlobList)
 	zedcloud.HandleDeferred(zedcloudCtx, time.Now(), 0, true)
+}
+
+func PublishBlobInfo(ctx *zedagentContext, blobSha string,
+	blobStatus *types.BlobStatus, iteration int, dest infoDest) {
+
+	locConfig := ctx.getconfigCtx.locConfig
+
+	if dest & ControllerDest != 0 {
+		url := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
+		publishBlobInfo(ctx, blobSha, blobStatus, iteration, url)
+	}
+	if dest & LOCDest != 0 && locConfig != nil {
+		url := zedcloud.URLPathString(locConfig.LocUrl, zedcloudCtx.V2API, devUUID, "info")
+		publishBlobInfo(ctx, blobSha, blobStatus, iteration, url)
+	}
 }
 
 // PublishEdgeviewToZedCloud - publish Edgeview info to controller

@@ -138,7 +138,7 @@ func objectInfoTask(ctxPtr *zedagentContext, triggerInfo <-chan infoForObjectKey
 				if c, err = sub.Get(infoForKeyMessage.objectKey); err == nil {
 					blobStatus := c.(types.BlobStatus)
 					uuidStr := blobStatus.Key()
-					PublishBlobInfoToZedCloud(ctxPtr, uuidStr, &blobStatus,
+					PublishBlobInfo(ctxPtr, uuidStr, &blobStatus,
 						ctxPtr.iteration, infoDest)
 					ctxPtr.iteration++
 				}
