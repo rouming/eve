@@ -146,7 +146,7 @@ func objectInfoTask(ctxPtr *zedagentContext, triggerInfo <-chan infoForObjectKey
 				sub := ctxPtr.subAppInstMetaData
 				if c, err = sub.Get(infoForKeyMessage.objectKey); err == nil {
 					appInstMetaData := c.(types.AppInstMetaData)
-					PublishAppInstMetaDataToZedCloud(ctxPtr, &appInstMetaData,
+					PublishAppInstMetaDataInfo(ctxPtr, &appInstMetaData,
 						false, infoDest)
 					ctxPtr.iteration++
 				}
@@ -676,15 +676,15 @@ func PublishDeviceInfo(ctx *zedagentContext, dest infoDest) {
 	}
 }
 
-// PublishAppInstMetaDataToZedCloud is called when an appInst reports its Metadata to EVE.
+// publishAppInstMetaDataInfo is called when an appInst reports its Metadata to EVE.
 // AppInst metadata is relayed to the controller to be processed further.
-func PublishAppInstMetaDataToZedCloud(ctx *zedagentContext,
+func publishAppInstMetaDataInfo(ctx *zedagentContext,
 	appInstMetadata *types.AppInstMetaData, isDelete bool,
-	dest infoDest) {
+	statusUrl string) {
 
 	metadataType := appInstMetadata.Type
 	appInstId := appInstMetadata.AppInstUUID.String()
-	log.Functionf("PublishAppInstMetaDataToZedCloud: appInstID: %v", appInstId)
+	log.Functionf("publishAppInstMetaDataInfo: appInstID: %v", appInstId)
 	var ReportInfo = &info.ZInfoMsg{}
 
 	contentType := new(info.ZInfoTypes)
@@ -707,13 +707,12 @@ func PublishAppInstMetaDataToZedCloud(ctx *zedagentContext,
 		reportAppInstMetadata.Amdinfo = ReportAppInstMetaData
 	}
 
-	log.Functionf("PublishAppInstMetaDataToZedCloud sending %v", ReportInfo)
+	log.Functionf("publishAppInstMetaDataInfo sending %v", ReportInfo)
 
 	data, err := proto.Marshal(ReportInfo)
 	if err != nil {
-		log.Fatal("PublishAppInstMetaDataToZedCloud proto marshaling error: ", err)
+		log.Fatal("publishAppInstMetaDataInfo proto marshaling error: ", err)
 	}
-	statusURL := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
 
 	deferKey := "appInstMetadataInfo:" + appInstMetadata.Key()
 
@@ -726,9 +725,25 @@ func PublishAppInstMetaDataToZedCloud(ctx *zedagentContext,
 	//We queue the message and then get the highest priority message to send.
 	//If there are no failures and defers we'll send this message,
 	//but if there is a queue we'll retry sending the highest priority message.
-	zedcloud.SetDeferred(zedcloudCtx, deferKey, buf, size, statusURL, true,
+	zedcloud.SetDeferred(zedcloudCtx, deferKey, buf, size, statusUrl, true,
 		false, info.ZInfoTypes_ZiAppInstMetaData)
 	zedcloud.HandleDeferred(zedcloudCtx, time.Now(), 0, true)
+}
+
+func PublishAppInstMetaDataInfo(ctx *zedagentContext,
+	appInstMetadata *types.AppInstMetaData, isDelete bool,
+	dest infoDest) {
+
+	locConfig := ctx.getconfigCtx.locConfig
+
+	if dest & ControllerDest != 0 {
+		url := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
+		publishAppInstMetaDataInfo(ctx, appInstMetadata, isDelete, url)
+	}
+	if dest & LOCDest != 0 && locConfig != nil {
+		url := zedcloud.URLPathString(locConfig.LocUrl, zedcloudCtx.V2API, devUUID, "info")
+		publishAppInstMetaDataInfo(ctx, appInstMetadata, isDelete, url)
+	}
 }
 
 // Convert the implementation details to the user-friendly userStatus and subStatus*
