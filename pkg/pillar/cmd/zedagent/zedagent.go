@@ -235,6 +235,33 @@ var logger *logrus.Logger
 var log *base.LogObject
 var zedcloudCtx *zedcloud.ZedCloudContext
 
+type infoDest uint
+
+// destination types, where info should be sent
+const (
+	ControllerDest  infoDest = 1
+	LocalServerDest          = 2
+	LOCDest                  = 4
+	AllDest                  = ControllerDest | LocalServerDest | LOCDest
+)
+
+func infoDestToURLs(ctx *zedagentContext, dest infoDest) []string {
+
+	locConfig := ctx.getconfigCtx.locConfig
+	urls := []string{}
+
+	if dest&ControllerDest != 0 {
+		url := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
+		urls = append(urls, url)
+	}
+	if dest&LOCDest != 0 && locConfig != nil {
+		url := zedcloud.URLPathString(locConfig.LocUrl, zedcloudCtx.V2API, devUUID, "info")
+		urls = append(urls, url)
+	}
+
+	return urls
+}
+
 // object to trigger sending of info with infoType for objectKey
 type infoForObjectKey struct {
 	infoType  info.ZInfoTypes
