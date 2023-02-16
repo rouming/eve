@@ -118,7 +118,7 @@ func objectInfoTask(ctxPtr *zedagentContext, triggerInfo <-chan infoForObjectKey
 				if c, err = sub.Get(infoForKeyMessage.objectKey); err == nil {
 					volumeStatus := c.(types.VolumeStatus)
 					uuidStr := volumeStatus.VolumeID.String()
-					PublishVolumeToZedCloud(ctxPtr, uuidStr, &volumeStatus,
+					PublishVolumeInfo(ctxPtr, uuidStr, &volumeStatus,
 						ctxPtr.iteration, infoDest)
 					ctxPtr.iteration++
 				}

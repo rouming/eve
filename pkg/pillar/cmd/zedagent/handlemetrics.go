@@ -102,7 +102,7 @@ func handleAppDiskMetricCreate(ctxArg interface{}, key string, _ interface{}) {
 			continue
 		}
 		uuidStr := volumeStatus.VolumeID.String()
-		PublishVolumeToZedCloud(ctx, uuidStr, &volumeStatus,
+		PublishVolumeInfo(ctx, uuidStr, &volumeStatus,
 			ctx.iteration, AllDest)
 	}
 	log.Functionf("handleAppDiskMetricCreate: %s", key)
@@ -1317,13 +1317,13 @@ func PublishContentInfo(ctx *zedagentContext, uuid string,
 	}
 }
 
-// PublishVolumeToZedCloud is called per change, hence needs to try over all management ports
+// publishVolumeInfo is called per change, hence needs to try over all management ports
 // When volume status is nil it means a delete and we send a message
 // containing only the UUID to inform zedcloud about the delete.
-func PublishVolumeToZedCloud(ctx *zedagentContext, uuid string,
-	volStatus *types.VolumeStatus, iteration int, dest infoDest) {
+func publishVolumeInfo(ctx *zedagentContext, uuid string,
+	volStatus *types.VolumeStatus, iteration int, statusUrl string) {
 
-	log.Functionf("PublishVolumeToZedCloud uuid %s", uuid)
+	log.Functionf("publishVolumeInfo uuid %s", uuid)
 	var ReportInfo = &info.ZInfoMsg{}
 
 	volumeType := new(info.ZInfoTypes)
@@ -1374,13 +1374,12 @@ func PublishVolumeToZedCloud(ctx *zedagentContext, uuid string,
 		x.Vinfo = ReportVolumeInfo
 	}
 
-	log.Functionf("PublishVolumeToZedCloud sending %v", ReportInfo)
+	log.Functionf("publishVolumeInfo sending %v", ReportInfo)
 
 	data, err := proto.Marshal(ReportInfo)
 	if err != nil {
-		log.Fatal("PublishVolumeToZedCloud proto marshaling error: ", err)
+		log.Fatal("publishVolumeInfo proto marshaling error: ", err)
 	}
-	statusURL := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
 
 	buf := bytes.NewBuffer(data)
 	if buf == nil {
@@ -1391,9 +1390,24 @@ func PublishVolumeToZedCloud(ctx *zedagentContext, uuid string,
 	//We queue the message and then get the highest priority message to send.
 	//If there are no failures and defers we'll send this message,
 	//but if there is a queue we'll retry sending the highest priority message.
-	zedcloud.SetDeferred(zedcloudCtx, uuid, buf, size, statusURL,
+	zedcloud.SetDeferred(zedcloudCtx, uuid, buf, size, statusUrl,
 		true, false, info.ZInfoTypes_ZiVolume)
 	zedcloud.HandleDeferred(zedcloudCtx, time.Now(), 0, true)
+}
+
+func PublishVolumeInfo(ctx *zedagentContext, uuid string,
+	volStatus *types.VolumeStatus, iteration int, dest infoDest) {
+
+	locConfig := ctx.getconfigCtx.locConfig
+
+	if dest & ControllerDest != 0 {
+		url := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
+		publishVolumeInfo(ctx, uuid, volStatus, iteration, url)
+	}
+	if dest & LOCDest != 0 && locConfig != nil {
+		url := zedcloud.URLPathString(locConfig.LocUrl, zedcloudCtx.V2API, devUUID, "info")
+		publishVolumeInfo(ctx, uuid, volStatus, iteration, url)
+	}
 }
 
 // PublishBlobInfoToZedCloud is called per change, hence needs to try over all management ports
