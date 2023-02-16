@@ -1233,13 +1233,13 @@ func PublishAppInfo(ctx *zedagentContext, uuid string,
 	}
 }
 
-// PublishContentInfoToZedCloud is called per change, hence needs to try over all management ports
+// PublishContentInfo is called per change, hence needs to try over all management ports
 // When content tree Status is nil it means a delete and we send a message
 // containing only the UUID to inform zedcloud about the delete.
-func PublishContentInfoToZedCloud(ctx *zedagentContext, uuid string,
-	ctStatus *types.ContentTreeStatus, iteration int, dest infoDest) {
+func publishContentInfo(ctx *zedagentContext, uuid string,
+	ctStatus *types.ContentTreeStatus, iteration int, statusUrl string) {
 
-	log.Functionf("PublishContentInfoToZedCloud uuid %s", uuid)
+	log.Functionf("piblishContentInfo uuid %s", uuid)
 	var ReportInfo = &info.ZInfoMsg{}
 
 	contentType := new(info.ZInfoTypes)
@@ -1281,13 +1281,12 @@ func PublishContentInfoToZedCloud(ctx *zedagentContext, uuid string,
 		x.Cinfo = ReportContentInfo
 	}
 
-	log.Functionf("PublishContentInfoToZedCloud sending %v", ReportInfo)
+	log.Functionf("piblishContentInfo sending %v", ReportInfo)
 
 	data, err := proto.Marshal(ReportInfo)
 	if err != nil {
-		log.Fatal("PublishContentInfoToZedCloud proto marshaling error: ", err)
+		log.Fatal("piblishContentInfo proto marshaling error: ", err)
 	}
-	statusURL := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
 
 	buf := bytes.NewBuffer(data)
 	if buf == nil {
@@ -1298,9 +1297,24 @@ func PublishContentInfoToZedCloud(ctx *zedagentContext, uuid string,
 	//We queue the message and then get the highest priority message to send.
 	//If there are no failures and defers we'll send this message,
 	//but if there is a queue we'll retry sending the highest priority message.
-	zedcloud.SetDeferred(zedcloudCtx, uuid, buf, size, statusURL,
+	zedcloud.SetDeferred(zedcloudCtx, uuid, buf, size, statusUrl,
 		true, false, info.ZInfoTypes_ZiContentTree)
 	zedcloud.HandleDeferred(zedcloudCtx, time.Now(), 0, true)
+}
+
+func PublishContentInfo(ctx *zedagentContext, uuid string,
+	ctStatus *types.ContentTreeStatus, iteration int, dest infoDest) {
+
+	locConfig := ctx.getconfigCtx.locConfig
+
+	if dest & ControllerDest != 0 {
+		url := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
+		publishContentInfo(ctx, uuid, ctStatus, iteration, url)
+	}
+	if dest & LOCDest != 0 && locConfig != nil {
+		url := zedcloud.URLPathString(locConfig.LocUrl, zedcloudCtx.V2API, devUUID, "info")
+		publishContentInfo(ctx, uuid, ctStatus, iteration, url)
+	}
 }
 
 // PublishVolumeToZedCloud is called per change, hence needs to try over all management ports

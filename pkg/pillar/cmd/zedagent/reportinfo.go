@@ -128,7 +128,7 @@ func objectInfoTask(ctxPtr *zedagentContext, triggerInfo <-chan infoForObjectKey
 				if c, err = sub.Get(infoForKeyMessage.objectKey); err == nil {
 					ctStatus := c.(types.ContentTreeStatus)
 					uuidStr := ctStatus.Key()
-					PublishContentInfoToZedCloud(ctxPtr, uuidStr, &ctStatus,
+					PublishContentInfo(ctxPtr, uuidStr, &ctStatus,
 						ctxPtr.iteration, infoDest)
 					ctxPtr.iteration++
 				}
