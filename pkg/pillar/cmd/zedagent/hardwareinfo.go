@@ -29,7 +29,7 @@ func hardwareInfoTask(ctxPtr *zedagentContext, triggerHwInfo <-chan infoDest) {
 			start := time.Now()
 			log.Function("HardwareInfoTask got message")
 
-			PublishHardwareInfoToZedCloud(ctxPtr, dest)
+			PublishHardwareInfo(ctxPtr, dest)
 			ctxPtr.iteration++
 			log.Function("HardwareInfoTask done with message")
 			ctxPtr.ps.CheckMaxTimeTopic(wdName, "PublishHardwareInfo", start,
@@ -40,8 +40,8 @@ func hardwareInfoTask(ctxPtr *zedagentContext, triggerHwInfo <-chan infoDest) {
 	}
 }
 
-// PublishHardwareInfoToZedCloud send ZInfoHardware message
-func PublishHardwareInfoToZedCloud(ctx *zedagentContext, dest infoDest) {
+// publishHardwareInfo send ZInfoHardware message
+func publishHardwareInfo(ctx *zedagentContext, statusUrl string) {
 	var ReportHwInfo = &info.ZInfoMsg{}
 	hwInfoKey := devUUID.String() + "hwinfo"
 	bailOnHTTPErr := true
@@ -50,14 +50,14 @@ func PublishHardwareInfoToZedCloud(ctx *zedagentContext, dest infoDest) {
 	ReportHwInfo.Ztype = *hwType
 	ReportHwInfo.DevId = *proto.String(devUUID.String())
 	ReportHwInfo.AtTimeStamp = ptypes.TimestampNow()
-	log.Functionf("PublishHardwareInfoToZedCloud uuid %s", hwInfoKey)
+	log.Functionf("publishHardwareInfo uuid %s", hwInfoKey)
 
 	hwInfo := new(info.ZInfoHardware)
 
 	// Get information about disks
 	disksInfo, err := hardware.ReadSMARTinfoForDisks()
 	if err != nil {
-		log.Fatal("PublishHardwareInfoToZedCloud get information about disks failed. Error: ", err)
+		log.Fatal("publishHardwareInfo get information about disks failed. Error: ", err)
 		return
 	}
 
@@ -92,23 +92,35 @@ func PublishHardwareInfoToZedCloud(ctx *zedagentContext, dest infoDest) {
 		x.Hwinfo = hwInfo
 	}
 
-	log.Tracef("PublishHardwareInfoToZedCloud sending %v", ReportHwInfo)
+	log.Tracef("publishHardwareInfo sending %v", ReportHwInfo)
 	data, err := proto.Marshal(ReportHwInfo)
 	if err != nil {
-		log.Fatal("PublishHardwareInfoToZedCloud proto marshaling error: ", err)
+		log.Fatal("publishHardwareInfo proto marshaling error: ", err)
 	}
-
-	statusURL := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
 
 	buf := bytes.NewBuffer(data)
 	if buf == nil {
-		log.Fatal("PublishHardwareInfoToZedCloud malloc error")
+		log.Fatal("publishHardwareInfo malloc error")
 	}
 	size := int64(proto.Size(ReportHwInfo))
 
 	zedcloud.SetDeferred(zedcloudCtx, hwInfoKey, buf, size,
-		statusURL, bailOnHTTPErr, false, info.ZInfoTypes_ZiHardware)
+		statusUrl, bailOnHTTPErr, false, info.ZInfoTypes_ZiHardware)
 	zedcloud.HandleDeferred(zedcloudCtx, time.Now(), 0, true)
+}
+
+func PublishHardwareInfo(ctx *zedagentContext, dest infoDest) {
+
+	locConfig := ctx.getconfigCtx.locConfig
+
+	if dest & ControllerDest != 0 {
+		url := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
+		publishHardwareInfo(ctx, url)
+	}
+	if dest & LOCDest != 0 && locConfig != nil {
+		url := zedcloud.URLPathString(locConfig.LocUrl, zedcloudCtx.V2API, devUUID, "info")
+		publishHardwareInfo(ctx, url)
+	}
 }
 
 func getSmartAttr(id int, diskData []*types.DAttrTable) *info.SmartAttr {

@@ -151,7 +151,7 @@ func objectInfoTask(ctxPtr *zedagentContext, triggerInfo <-chan infoForObjectKey
 					ctxPtr.iteration++
 				}
 			case info.ZInfoTypes_ZiHardware:
-				PublishHardwareInfoToZedCloud(ctxPtr, infoDest)
+				PublishHardwareInfo(ctxPtr, infoDest)
 				ctxPtr.iteration++
 			case info.ZInfoTypes_ZiEdgeview:
 				// publish Edgeview info
