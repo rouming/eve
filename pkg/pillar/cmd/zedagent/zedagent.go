@@ -235,6 +235,16 @@ var logger *logrus.Logger
 var log *base.LogObject
 var zedcloudCtx *zedcloud.ZedCloudContext
 
+type infoDest uint
+
+// destination types, where info should be sent
+const (
+	ControllerDest infoDest = 1
+	LocalServerDest = 2
+	LOCDest = 4
+	AllDest = ControllerDest | LocalServerDest | LOCDest
+)
+
 // object to trigger sending of info with infoType for objectKey
 type infoForObjectKey struct {
 	infoType  info.ZInfoTypes
