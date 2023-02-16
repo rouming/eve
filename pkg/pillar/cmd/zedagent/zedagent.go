@@ -437,7 +437,7 @@ func Run(ps *pubsub.PubSub, loggerArg *logrus.Logger, logArg *base.LogObject, ar
 	// start the metrics reporting task
 	handleChannel := make(chan interface{})
 	log.Functionf("Creating %s at %s", "metricsTimerTask", agentlog.GetMyStack())
-	go metricsTimerTask(zedagentCtx, handleChannel)
+	go metricsAndInfoTimerTask(zedagentCtx, handleChannel)
 	metricsTickerHandle := <-handleChannel
 	getconfigCtx.metricsTickerHandle = metricsTickerHandle
 
