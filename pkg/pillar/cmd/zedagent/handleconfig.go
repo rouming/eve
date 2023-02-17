@@ -699,9 +699,6 @@ func getLatestConfig(getconfigCtx *getconfigContext, iteration int,
 
 	rv, tracedReqs := requestConfig(getconfigCtx, url, iteration, withNetTracing)
 
-	//XXX
-	getconfigCtx.locConfig = &types.LOCConfig{LocUrl: "10.208.13.216:1443"}
-
 	// Request configiguration from the LOC
 	if needRequestLocConfig(getconfigCtx, rv) {
 		locUrl := getconfigCtx.locConfig.LocUrl
