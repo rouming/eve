@@ -166,7 +166,7 @@ func objectInfoTask(ctxPtr *zedagentContext, triggerInfo <-chan infoForObjectKey
 				if locInfo != nil {
 					// Note that we use a zero iteration
 					// counter here.
-					publishLocationToController(locInfo, 0, infoDest)
+					publishLocationToDest(ctxPtr, locInfo, 0, infoDest)
 				}
 			}
 			if err != nil {
@@ -648,8 +648,6 @@ func PublishDeviceInfoToZedCloud(ctx *zedagentContext, dest infoDest) {
 		log.Fatal("PublishDeviceInfoToZedCloud proto marshaling error: ", err)
 	}
 
-	statusUrl := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
-
 	buf := bytes.NewBuffer(data)
 	if buf == nil {
 		log.Fatal("malloc error")
@@ -660,9 +658,10 @@ func PublishDeviceInfoToZedCloud(ctx *zedagentContext, dest infoDest) {
 	//If there are no failures and defers we'll send this message,
 	//but if there is a queue we'll retry sending the highest priority message.
 	withNetTracing := traceNextInfoReq(ctx)
-	zedcloud.SetDeferred(zedcloudCtx, deviceUUID, buf, size,
-		statusUrl, true, withNetTracing, info.ZInfoTypes_ZiDevice)
-	zedcloud.HandleDeferred(zedcloudCtx, time.Now(), 0, true)
+	urls := infoDestToURLs(ctx, dest)
+	zedcloud.SetDeferredList(zedcloudCtx, deviceUUID, buf, size,
+		urls, true, withNetTracing, info.ZInfoTypes_ZiDevice)
+	zedcloud.HandleDeferred(zedcloudCtx, time.Now(), 0, false)
 }
 
 // PublishAppInstMetaDataToZedCloud is called when an appInst reports its Metadata to EVE.
@@ -702,8 +701,6 @@ func PublishAppInstMetaDataToZedCloud(ctx *zedagentContext,
 	if err != nil {
 		log.Fatal("PublishAppInstMetaDataToZedCloud proto marshaling error: ", err)
 	}
-	statusURL := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
-
 	deferKey := "appInstMetadataInfo:" + appInstMetadata.Key()
 
 	buf := bytes.NewBuffer(data)
@@ -715,9 +712,10 @@ func PublishAppInstMetaDataToZedCloud(ctx *zedagentContext,
 	//We queue the message and then get the highest priority message to send.
 	//If there are no failures and defers we'll send this message,
 	//but if there is a queue we'll retry sending the highest priority message.
-	zedcloud.SetDeferred(zedcloudCtx, deferKey, buf, size, statusURL, true,
+	urls := infoDestToURLs(ctx, dest)
+	zedcloud.SetDeferredList(zedcloudCtx, deferKey, buf, size, urls, true,
 		false, info.ZInfoTypes_ZiAppInstMetaData)
-	zedcloud.HandleDeferred(zedcloudCtx, time.Now(), 0, true)
+	zedcloud.HandleDeferred(zedcloudCtx, time.Now(), 0, false)
 }
 
 // Convert the implementation details to the user-friendly userStatus and subStatus*

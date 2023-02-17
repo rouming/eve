@@ -70,7 +70,7 @@ func locationTimerTask(ctx *zedagentContext, handleChannel chan interface{},
 			}
 			start := time.Now()
 			cloudIteration++
-			publishLocationToController(locInfo, cloudIteration, dest)
+			publishLocationToDest(ctx, locInfo, cloudIteration, dest)
 			ctx.ps.CheckMaxTimeTopic(wdName, "publishLocationToController", start,
 				warningTime, errorTime)
 
@@ -125,7 +125,8 @@ func updateLocationAppTimer(ctx *getconfigContext, appInterval uint32) {
 	flextimer.TickNow(ctx.locationAppTickerHandle)
 }
 
-func publishLocationToController(locInfo *info.ZInfoLocation, iteration int, dest infoDest) {
+func publishLocationToDest(ctx *zedagentContext, locInfo *info.ZInfoLocation,
+	iteration int, dest infoDest) {
 	log.Functionf("publishLocationToController: iteration %d", iteration)
 	infoMsg := &info.ZInfoMsg{
 		Ztype: info.ZInfoTypes_ZiLocation,
@@ -141,8 +142,6 @@ func publishLocationToController(locInfo *info.ZInfoLocation, iteration int, des
 	if err != nil {
 		log.Fatal("publishLocationToController: proto marshaling error: ", err)
 	}
-	infoURL := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API,
-		devUUID, "info")
 
 	buf := bytes.NewBuffer(data)
 	if buf == nil {
@@ -154,9 +153,10 @@ func publishLocationToController(locInfo *info.ZInfoLocation, iteration int, des
 	const withNetTrace = false
 	key := "location:" + devUUID.String()
 
-	zedcloud.SetDeferred(zedcloudCtx, key, buf, size,
-		infoURL, bailOnHTTPErr, withNetTrace, info.ZInfoTypes_ZiLocation)
-	zedcloud.HandleDeferred(zedcloudCtx, time.Now(), 0, true)
+	urls := infoDestToURLs(ctx, dest)
+	zedcloud.SetDeferredList(zedcloudCtx, key, buf, size,
+		urls, bailOnHTTPErr, withNetTrace, info.ZInfoTypes_ZiLocation)
+	zedcloud.HandleDeferred(zedcloudCtx, time.Now(), 0, false)
 }
 
 func publishLocationToLocalServer(ctx *getconfigContext, locInfo *info.ZInfoLocation) {

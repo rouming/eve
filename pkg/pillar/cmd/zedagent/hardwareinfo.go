@@ -98,17 +98,16 @@ func PublishHardwareInfoToZedCloud(ctx *zedagentContext, dest infoDest) {
 		log.Fatal("PublishHardwareInfoToZedCloud proto marshaling error: ", err)
 	}
 
-	statusURL := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
-
 	buf := bytes.NewBuffer(data)
 	if buf == nil {
 		log.Fatal("PublishHardwareInfoToZedCloud malloc error")
 	}
 	size := int64(proto.Size(ReportHwInfo))
 
-	zedcloud.SetDeferred(zedcloudCtx, hwInfoKey, buf, size,
-		statusURL, bailOnHTTPErr, false, info.ZInfoTypes_ZiHardware)
-	zedcloud.HandleDeferred(zedcloudCtx, time.Now(), 0, true)
+	urls := infoDestToURLs(ctx, dest)
+	zedcloud.SetDeferredList(zedcloudCtx, hwInfoKey, buf, size,
+		urls, bailOnHTTPErr, false, info.ZInfoTypes_ZiHardware)
+	zedcloud.HandleDeferred(zedcloudCtx, time.Now(), 0, false)
 }
 
 func getSmartAttr(id int, diskData []*types.DAttrTable) *info.SmartAttr {
