@@ -255,8 +255,8 @@ func infoDestToURLs(ctx *zedagentContext, dest infoDest) []string {
 		urls = append(urls, url)
 	}
 	if dest&LOCDest != 0 && locConfig != nil {
-		url := zedcloud.URLPathString(locConfig.LocUrl, zedcloudCtx.V2API, devUUID, "info")
-		urls = append(urls, url)
+		//url := zedcloud.URLPathString(locConfig.LocUrl, zedcloudCtx.V2API, devUUID, "info")
+		//urls = append(urls, url)
 	}
 
 	return urls

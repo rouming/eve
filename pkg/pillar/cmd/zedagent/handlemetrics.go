@@ -197,7 +197,7 @@ func metricsAndInfoTimerTask(ctx *zedagentContext, handleChannel chan interface{
 			locConfig := ctx.getconfigCtx.locConfig
 			if locConfig != nil {
 				// Publish all info by timer only for LOC
-				triggerPublishAllInfo(ctx, LOCDest)
+				//triggerPublishAllInfo(ctx, LOCDest)
 			}
 
 		case <-stillRunning.C:
