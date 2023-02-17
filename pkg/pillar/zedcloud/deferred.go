@@ -25,7 +25,6 @@ import (
 //	zedcloud.RemoveDeferred(key)
 // After failure call
 // 	zedcloud.SetDeferred(key, buf, size, url, zedcloudCtx)
-// or AddDeferred to build a queue for each key
 
 type deferredItem struct {
 	itemType       interface{}
@@ -223,23 +222,59 @@ func (ctx *DeferredContext) handleDeferred(log *base.LogObject, event time.Time,
 func SetDeferred(zedcloudCtx *ZedCloudContext, key string, buf *bytes.Buffer,
 	size int64, url string, bailOnHTTPErr, withNetTracing bool, itemType interface{}) {
 
-	zedcloudCtx.deferredCtx.setDeferred(zedcloudCtx, key, buf, size, url, bailOnHTTPErr,
+	item := createDeferred(key, buf, size, url, bailOnHTTPErr,
 		withNetTracing, itemType)
+	zedcloudCtx.deferredCtx.addDeferred(zedcloudCtx, item)
 }
 
-func (ctx *DeferredContext) setDeferred(zedcloudCtx *ZedCloudContext,
-	key string, buf *bytes.Buffer, size int64, url string, bailOnHTTPErr,
-	withNetTracing bool, itemType interface{}) {
+// Similar to the @SetDeferred with the only difference is that function accepts
+// list of URls and for each URL separate deferred item is created and added to
+// the queue. Be aware that deferred item key is modified by concatanation of the
+// key in argument with the URL.
+func SetDeferredList(zedcloudCtx *ZedCloudContext, key string, buf *bytes.Buffer,
+	size int64, urls []string, bailOnHTTPErr, withNetTracing bool, itemType interface{}) {
+
+	for _, url := range urls {
+		item := createDeferred(key+url, buf, size, url,
+			bailOnHTTPErr, withNetTracing, itemType)
+		zedcloudCtx.deferredCtx.addDeferred(zedcloudCtx, item)
+	}
+}
+
+func (ctx *DeferredContext) addDeferred(zedcloudCtx *ZedCloudContext,
+	item *deferredItem) {
 	ctx.lock.Lock()
 	defer ctx.lock.Unlock()
 
 	log := zedcloudCtx.log
 	log.Functionf("SetDeferred(%s) size %d items %d",
-		key, size, len(ctx.deferredItems))
+		item.key, item.size, len(ctx.deferredItems))
 	if len(ctx.deferredItems) == 0 {
 		startTimer(log, ctx)
 	}
-	item := deferredItem{
+	found := false
+	ind := 0
+	var itemList *deferredItem
+	for ind, itemList = range ctx.deferredItems {
+		if itemList.key == item.key {
+			found = true
+			break
+		}
+	}
+	if found {
+		log.Tracef("Replacing key %s", item.key)
+		ctx.deferredItems[ind] = item
+	} else {
+		log.Tracef("Adding key %s", item.key)
+		ctx.deferredItems = append(ctx.deferredItems, item)
+	}
+}
+
+func createDeferred(key string, buf *bytes.Buffer,
+	size int64, url string, bailOnHTTPErr, withNetTracing bool,
+	itemType interface{}) *deferredItem {
+
+	return &deferredItem{
 		key:            key,
 		itemType:       itemType,
 		buf:            buf,
@@ -247,22 +282,6 @@ func (ctx *DeferredContext) setDeferred(zedcloudCtx *ZedCloudContext,
 		url:            url,
 		bailOnHTTPErr:  bailOnHTTPErr,
 		withNetTracing: withNetTracing,
-	}
-	found := false
-	ind := 0
-	var itemList *deferredItem
-	for ind, itemList = range ctx.deferredItems {
-		if itemList.key == key {
-			found = true
-			break
-		}
-	}
-	if found {
-		log.Tracef("Replacing key %s", key)
-		ctx.deferredItems[ind] = &item
-	} else {
-		log.Tracef("Adding key %s", key)
-		ctx.deferredItems = append(ctx.deferredItems, &item)
 	}
 }
 
