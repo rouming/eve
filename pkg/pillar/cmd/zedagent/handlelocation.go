@@ -152,15 +152,11 @@ func publishLocationToController(locInfo *info.ZInfoLocation, iteration int, des
 
 	const bailOnHTTPErr = false
 	const withNetTrace = false
-	ctxWork, cancel := zedcloud.GetContextForAllIntfFunctions(zedcloudCtx)
-	defer cancel()
-	rv, err := zedcloud.SendOnAllIntf(ctxWork, zedcloudCtx, infoURL,
-		size, buf, iteration, bailOnHTTPErr, withNetTrace)
-	if err != nil {
-		// Hopefully next timeout will be more successful
-		log.Errorf("publishLocationToController: failed (status %d): %v", rv.Status, err)
-		return
-	}
+	key := "location:" + devUUID.String()
+
+	zedcloud.SetDeferred(zedcloudCtx, key, buf, size,
+		infoURL, bailOnHTTPErr, withNetTrace, info.ZInfoTypes_ZiLocation)
+	zedcloud.HandleDeferred(zedcloudCtx, time.Now(), 0, true)
 }
 
 func publishLocationToLocalServer(ctx *getconfigContext, locInfo *info.ZInfoLocation) {
