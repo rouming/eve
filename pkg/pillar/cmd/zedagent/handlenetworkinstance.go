@@ -189,11 +189,11 @@ func PublishNetworkInstanceInfo(ctx *zedagentContext,
 
 	locConfig := ctx.getconfigCtx.locConfig
 
-	if dest & ControllerDest != 0 {
+	if dest&ControllerDest != 0 {
 		url := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
 		publishNetworkInstanceInfo(ctx, status, deleted, url)
 	}
-	if dest & LOCDest != 0 && locConfig != nil {
+	if dest&LOCDest != 0 && locConfig != nil {
 		url := zedcloud.URLPathString(locConfig.LocUrl, zedcloudCtx.V2API, devUUID, "info")
 		publishNetworkInstanceInfo(ctx, status, deleted, url)
 	}

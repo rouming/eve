@@ -1229,11 +1229,11 @@ func PublishAppInfo(ctx *zedagentContext, uuid string,
 
 	locConfig := ctx.getconfigCtx.locConfig
 
-	if dest & ControllerDest != 0 {
+	if dest&ControllerDest != 0 {
 		url := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
 		publishAppInfo(ctx, uuid, aiStatus, aa, iteration, url)
 	}
-	if dest & LOCDest != 0 && locConfig != nil {
+	if dest&LOCDest != 0 && locConfig != nil {
 		url := zedcloud.URLPathString(locConfig.LocUrl, zedcloudCtx.V2API, devUUID, "info")
 		publishAppInfo(ctx, uuid, aiStatus, aa, iteration, url)
 	}
@@ -1313,11 +1313,11 @@ func PublishContentInfo(ctx *zedagentContext, uuid string,
 
 	locConfig := ctx.getconfigCtx.locConfig
 
-	if dest & ControllerDest != 0 {
+	if dest&ControllerDest != 0 {
 		url := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
 		publishContentInfo(ctx, uuid, ctStatus, iteration, url)
 	}
-	if dest & LOCDest != 0 && locConfig != nil {
+	if dest&LOCDest != 0 && locConfig != nil {
 		url := zedcloud.URLPathString(locConfig.LocUrl, zedcloudCtx.V2API, devUUID, "info")
 		publishContentInfo(ctx, uuid, ctStatus, iteration, url)
 	}
@@ -1406,11 +1406,11 @@ func PublishVolumeInfo(ctx *zedagentContext, uuid string,
 
 	locConfig := ctx.getconfigCtx.locConfig
 
-	if dest & ControllerDest != 0 {
+	if dest&ControllerDest != 0 {
 		url := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
 		publishVolumeInfo(ctx, uuid, volStatus, iteration, url)
 	}
-	if dest & LOCDest != 0 && locConfig != nil {
+	if dest&LOCDest != 0 && locConfig != nil {
 		url := zedcloud.URLPathString(locConfig.LocUrl, zedcloudCtx.V2API, devUUID, "info")
 		publishVolumeInfo(ctx, uuid, volStatus, iteration, url)
 	}
@@ -1480,11 +1480,11 @@ func PublishBlobInfo(ctx *zedagentContext, blobSha string,
 
 	locConfig := ctx.getconfigCtx.locConfig
 
-	if dest & ControllerDest != 0 {
+	if dest&ControllerDest != 0 {
 		url := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
 		publishBlobInfo(ctx, blobSha, blobStatus, iteration, url)
 	}
-	if dest & LOCDest != 0 && locConfig != nil {
+	if dest&LOCDest != 0 && locConfig != nil {
 		url := zedcloud.URLPathString(locConfig.LocUrl, zedcloudCtx.V2API, devUUID, "info")
 		publishBlobInfo(ctx, blobSha, blobStatus, iteration, url)
 	}
@@ -1546,11 +1546,11 @@ func PublishEdgeviewInfo(ctx *zedagentContext,
 
 	locConfig := ctx.getconfigCtx.locConfig
 
-	if dest & ControllerDest != 0 {
+	if dest&ControllerDest != 0 {
 		url := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
 		publishEdgeviewInfo(ctx, evStatus, url)
 	}
-	if dest & LOCDest != 0 && locConfig != nil {
+	if dest&LOCDest != 0 && locConfig != nil {
 		url := zedcloud.URLPathString(locConfig.LocUrl, zedcloudCtx.V2API, devUUID, "info")
 		publishEdgeviewInfo(ctx, evStatus, url)
 	}

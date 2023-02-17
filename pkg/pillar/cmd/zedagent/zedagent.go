@@ -239,10 +239,10 @@ type infoDest uint
 
 // destination types, where info should be sent
 const (
-	ControllerDest infoDest = 1
-	LocalServerDest = 2
-	LOCDest = 4
-	AllDest = ControllerDest | LocalServerDest | LOCDest
+	ControllerDest  infoDest = 1
+	LocalServerDest          = 2
+	LOCDest                  = 4
+	AllDest                  = ControllerDest | LocalServerDest | LOCDest
 )
 
 // object to trigger sending of info with infoType for objectKey
@@ -1814,7 +1814,7 @@ func triggerPublishDevInfoWithDest(ctxPtr *zedagentContext, dest infoDest) {
 		// and we get a second and third trigger before that is complete.
 		log.Warnf("Failed to send on PublishDeviceInfo")
 	}
-	if dest & LocalServerDest != 0 {
+	if dest&LocalServerDest != 0 {
 		triggerLocalDevInfoPOST(ctxPtr.getconfigCtx)
 	}
 }
@@ -1829,7 +1829,7 @@ func triggerPublishLocationToControllerWithDest(ctxPtr *zedagentContext, dest in
 		return
 	}
 	log.Function("Triggered publishLocationToController")
-	ctxPtr.TriggerCloudLocationInfo <-dest
+	ctxPtr.TriggerCloudLocationInfo <- dest
 }
 
 func triggerPublishLocationToController(ctxPtr *zedagentContext) {

@@ -61,7 +61,7 @@ func locationTimerTask(ctx *zedagentContext, handleChannel chan interface{},
 		select {
 		case <-cloudTicker.C:
 			// Loopback the destination, will be fetched on the next iteration
-			triggerCloudLocationInfo <-AllDest
+			triggerCloudLocationInfo <- AllDest
 		case dest := <-triggerCloudLocationInfo:
 			locInfo := getLocationInfo(ctx)
 			if locInfo == nil {
@@ -232,14 +232,14 @@ func PublishLocationInfo(ctx *zedagentContext, locInfo *info.ZInfoLocation,
 
 	locConfig := ctx.getconfigCtx.locConfig
 
-	if dest & ControllerDest != 0 {
+	if dest&ControllerDest != 0 {
 		url := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
 		publishLocationInfo(locInfo, iteration, url)
 	}
-	if dest & LocalServerDest != 0 {
+	if dest&LocalServerDest != 0 {
 		publishLocationToLocalServer(ctx.getconfigCtx, locInfo)
 	}
-	if dest & LOCDest != 0 && locConfig != nil {
+	if dest&LOCDest != 0 && locConfig != nil {
 		url := zedcloud.URLPathString(locConfig.LocUrl, zedcloudCtx.V2API, devUUID, "info")
 		publishLocationInfo(locInfo, iteration, url)
 	}

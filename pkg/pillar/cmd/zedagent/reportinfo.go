@@ -666,11 +666,11 @@ func PublishDeviceInfo(ctx *zedagentContext, dest infoDest) {
 
 	locConfig := ctx.getconfigCtx.locConfig
 
-	if dest & ControllerDest != 0 {
+	if dest&ControllerDest != 0 {
 		url := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
 		publishDeviceInfo(ctx, url)
 	}
-	if dest & LOCDest != 0 && locConfig != nil {
+	if dest&LOCDest != 0 && locConfig != nil {
 		url := zedcloud.URLPathString(locConfig.LocUrl, zedcloudCtx.V2API, devUUID, "info")
 		publishDeviceInfo(ctx, url)
 	}
@@ -736,11 +736,11 @@ func PublishAppInstMetaDataInfo(ctx *zedagentContext,
 
 	locConfig := ctx.getconfigCtx.locConfig
 
-	if dest & ControllerDest != 0 {
+	if dest&ControllerDest != 0 {
 		url := zedcloud.URLPathString(serverNameAndPort, zedcloudCtx.V2API, devUUID, "info")
 		publishAppInstMetaDataInfo(ctx, appInstMetadata, isDelete, url)
 	}
-	if dest & LOCDest != 0 && locConfig != nil {
+	if dest&LOCDest != 0 && locConfig != nil {
 		url := zedcloud.URLPathString(locConfig.LocUrl, zedcloudCtx.V2API, devUUID, "info")
 		publishAppInstMetaDataInfo(ctx, appInstMetadata, isDelete, url)
 	}
