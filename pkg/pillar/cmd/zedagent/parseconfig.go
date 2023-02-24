@@ -2536,6 +2536,11 @@ func parseLocConfig(getconfigCtx *getconfigContext,
 	} else {
 		getconfigCtx.locConfig = nil
 	}
+
+	//XXX
+	getconfigCtx.locConfig = &types.LOCConfig{
+		LocURL: "10.208.13.216:1443",
+	}
 }
 
 func removeDeviceOpsCmdConfig(op types.DeviceOperation) {
