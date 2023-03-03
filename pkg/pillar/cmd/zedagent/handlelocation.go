@@ -121,8 +121,8 @@ func publishLocation(ctx *zedagentContext, iter *int, wdName string,
 	}
 	if dest&LPSDest != 0 {
 		start := time.Now()
-		publishLocationToLocalServer(ctx.getconfigCtx, locInfo)
-		ctx.ps.CheckMaxTimeTopic(wdName, "publishLocationToLocalServer", start,
+		publishLocationToLPS(ctx.getconfigCtx, locInfo)
+		ctx.ps.CheckMaxTimeTopic(wdName, "publishLocationToLPS", start,
 			warningTime, errorTime)
 	}
 }
@@ -161,7 +161,7 @@ func publishLocationToDest(ctx *zedagentContext, locInfo *info.ZInfoLocation,
 		forcePeriodic, info.ZInfoTypes_ZiLocation)
 }
 
-func publishLocationToLocalServer(ctx *getconfigContext, locInfo *info.ZInfoLocation) {
+func publishLocationToLPS(ctx *getconfigContext, locInfo *info.ZInfoLocation) {
 	if ctx.lpsThrottledLocation {
 		if time.Since(ctx.lpsLastPublishedLocation) < lpsLocationThrottledInterval {
 			return
@@ -171,23 +171,23 @@ func publishLocationToLocalServer(ctx *getconfigContext, locInfo *info.ZInfoLoca
 	if localProfileServer == "" {
 		return
 	}
-	localServerURL, err := makeLocalServerBaseURL(localProfileServer)
+	localServerURL, err := makeLPSBaseURL(localProfileServer)
 	if err != nil {
-		log.Errorf("publishLocationToLocalServer: makeLocalServerBaseURL: %v", err)
+		log.Errorf("publishLocationToLPS: makeLPSBaseURL: %v", err)
 		return
 	}
 	if !ctx.localServerMap.upToDate {
-		err := updateLocalServerMap(ctx, localServerURL)
+		err := updateLPSMap(ctx, localServerURL)
 		if err != nil {
-			log.Errorf("publishLocationToLocalServer: updateLocalServerMap: %v", err)
+			log.Errorf("publishLocationToLPS: updateLPSMap: %v", err)
 			return
 		}
-		// Make sure HasLocalServer is set correctly for the AppInstanceConfig
-		updateHasLocalServer(ctx)
+		// Make sure HasLPS is set correctly for the AppInstanceConfig
+		updateHasLPS(ctx)
 	}
 	srvMap := ctx.localServerMap.servers
 	if len(srvMap) == 0 {
-		log.Functionf("publishLocationToLocalServer: cannot find any configured "+
+		log.Functionf("publishLocationToLPS: cannot find any configured "+
 			"apps for localServerURL: %s", localServerURL)
 		return
 	}
@@ -222,7 +222,7 @@ func publishLocationToLocalServer(ctx *getconfigContext, locInfo *info.ZInfoLoca
 			}
 		}
 	}
-	log.Errorf("publishLocationToLocalServer: all attempts failed: %s",
+	log.Errorf("publishLocationToLPS: all attempts failed: %s",
 		strings.Join(errList, ";"))
 	return
 }

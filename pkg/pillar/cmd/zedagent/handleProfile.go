@@ -20,20 +20,20 @@ import (
 )
 
 const (
-	defaultLocalServerPort = "8888"
-	profileURLPath         = "/api/v1/local_profile"
-	savedLocalProfileFile  = "lastlocalprofile"
+	defaultLPSPort        = "8888"
+	profileURLPath        = "/api/v1/local_profile"
+	savedLocalProfileFile = "lastlocalprofile"
 )
 
-// makeLocalServerBaseURL constructs local server URL without path.
-func makeLocalServerBaseURL(localServerAddr string) (string, error) {
+// makeLPSBaseURL constructs local server URL without path.
+func makeLPSBaseURL(localServerAddr string) (string, error) {
 	localServerURL := fmt.Sprintf("http://%s", localServerAddr)
 	u, err := url.Parse(localServerURL)
 	if err != nil {
 		return "", fmt.Errorf("url.Parse: %s", err)
 	}
 	if u.Port() == "" {
-		localServerURL = fmt.Sprintf("%s:%s", localServerURL, defaultLocalServerPort)
+		localServerURL = fmt.Sprintf("%s:%s", localServerURL, defaultLPSPort)
 	}
 	return localServerURL, nil
 }
@@ -116,12 +116,12 @@ func getLocalProfileConfig(getconfigCtx *getconfigContext, localServerURL string
 	log.Functionf("getLocalProfileConfig(%s)", localServerURL)
 
 	if !getconfigCtx.localServerMap.upToDate {
-		err := updateLocalServerMap(getconfigCtx, localServerURL)
+		err := updateLPSMap(getconfigCtx, localServerURL)
 		if err != nil {
-			return nil, fmt.Errorf("getLocalProfileConfig: updateLocalServerMap: %v", err)
+			return nil, fmt.Errorf("getLocalProfileConfig: updateLPSMap: %v", err)
 		}
-		// Make sure HasLocalServer is set correctly for the AppInstanceConfig
-		updateHasLocalServer(getconfigCtx)
+		// Make sure HasLPS is set correctly for the AppInstanceConfig
+		updateHasLPS(getconfigCtx)
 	}
 
 	srvMap := getconfigCtx.localServerMap.servers
@@ -258,9 +258,9 @@ func getLocalProfile(ctx *getconfigContext, skipFetch bool) string {
 	if skipFetch {
 		return ctx.localProfile
 	}
-	localServerURL, err := makeLocalServerBaseURL(localProfileServer)
+	localServerURL, err := makeLPSBaseURL(localProfileServer)
 	if err != nil {
-		log.Errorf("getLocalProfile: makeLocalServerBaseURL: %s", err)
+		log.Errorf("getLocalProfile: makeLPSBaseURL: %s", err)
 		return ""
 	}
 	localProfileConfig, err := getLocalProfileConfig(ctx, localServerURL)

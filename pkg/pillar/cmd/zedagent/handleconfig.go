@@ -969,14 +969,14 @@ func publishZedAgentStatus(getconfigCtx *getconfigContext) {
 	pub.Publish(agentName, status)
 }
 
-// updateLocalServerMap processes configuration of network instances to locate all local servers matching
+// updateLPSMap processes configuration of network instances to locate all local servers matching
 // the given localServerURL.
 // Returns the source IP and a normalized URL for one or more network instances on which the local server
 // was found to be hosted.
-func updateLocalServerMap(getconfigCtx *getconfigContext, localServerURL string) error {
+func updateLPSMap(getconfigCtx *getconfigContext, localServerURL string) error {
 	url, err := url.Parse(localServerURL)
 	if err != nil {
-		return fmt.Errorf("updateLocalServerMap: url.Parse: %v", err)
+		return fmt.Errorf("updateLPSMap: url.Parse: %v", err)
 	}
 
 	srvMap := &localServerMap{servers: make(map[string][]localServerAddr), upToDate: true}
@@ -1015,7 +1015,7 @@ func updateLocalServerMap(getconfigCtx *getconfigContext, localServerURL string)
 						localServerURLReplaced := strings.Replace(
 							localServerURL, localServerHostname, ip.String(), 1)
 						log.Functionf(
-							"updateLocalServerMap: will use %s for bridge %s",
+							"updateLPSMap: will use %s for bridge %s",
 							localServerURLReplaced, ulStatus.Bridge)
 						srvAddr := localServerAddr{
 							localServerAddr: localServerURLReplaced,
@@ -1035,28 +1035,28 @@ func updateLocalServerMap(getconfigCtx *getconfigContext, localServerURL string)
 	return nil
 }
 
-// updateHasLocalServer sets HasLocalServer on the app instances
+// updateHasLPS sets HasLPS on the app instances
 // Note that if there are changes to the AppInstanceConfig or the allocated IP
-// addresses the HasLocalServer will not immediately reflect that since we need
+// addresses the HasLPS will not immediately reflect that since we need
 // the IP address from AppNetworkStatus.
-func updateHasLocalServer(ctx *getconfigContext) {
+func updateHasLPS(ctx *getconfigContext) {
 	srvMap := ctx.localServerMap.servers
 	items := ctx.pubAppInstanceConfig.GetAll()
 	for _, item := range items {
 		aic := item.(types.AppInstanceConfig)
-		hasLocalServer := false
+		hasLPS := false
 		for _, servers := range srvMap {
 			for _, srv := range servers {
 				if srv.appUUID == aic.UUIDandVersion.UUID {
-					hasLocalServer = true
+					hasLPS = true
 					break
 				}
 			}
 		}
-		if hasLocalServer != aic.HasLocalServer {
-			aic.HasLocalServer = hasLocalServer
-			log.Noticef("HasLocalServer(%s) for %s change to %t",
-				aic.Key(), aic.DisplayName, hasLocalServer)
+		if hasLPS != aic.HasLPS {
+			aic.HasLPS = hasLPS
+			log.Noticef("HasLPS(%s) for %s change to %t",
+				aic.Key(), aic.DisplayName, hasLPS)
 			// Verify that it fits and if not publish with error
 			checkAndPublishAppInstanceConfig(ctx, aic)
 		}

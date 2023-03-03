@@ -114,19 +114,19 @@ func postLocalAppInfo(ctx *getconfigContext) *profile.LocalAppCmdList {
 	if localProfileServer == "" {
 		return nil
 	}
-	localServerURL, err := makeLocalServerBaseURL(localProfileServer)
+	localServerURL, err := makeLPSBaseURL(localProfileServer)
 	if err != nil {
-		log.Errorf("sendLocalAppInfo: makeLocalServerBaseURL: %v", err)
+		log.Errorf("sendLocalAppInfo: makeLPSBaseURL: %v", err)
 		return nil
 	}
 	if !ctx.localServerMap.upToDate {
-		err := updateLocalServerMap(ctx, localServerURL)
+		err := updateLPSMap(ctx, localServerURL)
 		if err != nil {
-			log.Errorf("sendLocalAppInfo: updateLocalServerMap: %v", err)
+			log.Errorf("sendLocalAppInfo: updateLPSMap: %v", err)
 			return nil
 		}
-		// Make sure HasLocalServer is set correctly for the AppInstanceConfig
-		updateHasLocalServer(ctx)
+		// Make sure HasLPS is set correctly for the AppInstanceConfig
+		updateHasLPS(ctx)
 	}
 	srvMap := ctx.localServerMap.servers
 	if len(srvMap) == 0 {
@@ -235,12 +235,12 @@ func processReceivedAppCommands(ctx *getconfigContext, cmdList *profile.LocalApp
 			ctx.localCommands.AppCommands[appUUID.String()] = appCmd
 		}
 		if appCmd.Command == command &&
-			appCmd.LocalServerTimestamp == appCmdReq.Timestamp {
+			appCmd.LPSTimestamp == appCmdReq.Timestamp {
 			// already accepted
 			continue
 		}
 		appCmd.Command = command
-		appCmd.LocalServerTimestamp = appCmdReq.Timestamp
+		appCmd.LPSTimestamp = appCmdReq.Timestamp
 		appCmd.DeviceTimestamp = time.Now()
 		appCmd.Completed = false
 		cmdChanges = true
@@ -361,14 +361,14 @@ func processAppCommandStatus(
 	case types.AppCommandRestart:
 		if appStatus.RestartStartedAt.After(appCmd.DeviceTimestamp) {
 			appCmd.Completed = true
-			appCmd.LastCompletedTimestamp = appCmd.LocalServerTimestamp
+			appCmd.LastCompletedTimestamp = appCmd.LPSTimestamp
 			updated = true
 			log.Noticef("Local restart completed: %+v", appCmd)
 		}
 	case types.AppCommandPurge:
 		if appStatus.PurgeStartedAt.After(appCmd.DeviceTimestamp) {
 			appCmd.Completed = true
-			appCmd.LastCompletedTimestamp = appCmd.LocalServerTimestamp
+			appCmd.LastCompletedTimestamp = appCmd.LPSTimestamp
 			updated = true
 			log.Noticef("Local purge completed: %+v", appCmd)
 		}
@@ -605,19 +605,19 @@ func postLocalDevInfo(ctx *getconfigContext) *profile.LocalDevCmd {
 	if localProfileServer == "" {
 		return nil
 	}
-	localServerURL, err := makeLocalServerBaseURL(localProfileServer)
+	localServerURL, err := makeLPSBaseURL(localProfileServer)
 	if err != nil {
-		log.Errorf("sendLocalDevInfo: makeLocalServerBaseURL: %v", err)
+		log.Errorf("sendLocalDevInfo: makeLPSBaseURL: %v", err)
 		return nil
 	}
 	if !ctx.localServerMap.upToDate {
-		err := updateLocalServerMap(ctx, localServerURL)
+		err := updateLPSMap(ctx, localServerURL)
 		if err != nil {
-			log.Errorf("sendLocalDevInfo: updateLocalServerMap: %v", err)
+			log.Errorf("sendLocalDevInfo: updateLPSMap: %v", err)
 			return nil
 		}
-		// Make sure HasLocalServer is set correctly for the AppInstanceConfig
-		updateHasLocalServer(ctx)
+		// Make sure HasLPS is set correctly for the AppInstanceConfig
+		updateHasLPS(ctx)
 	}
 	srvMap := ctx.localServerMap.servers
 	if len(srvMap) == 0 {

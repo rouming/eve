@@ -165,19 +165,19 @@ func getRadioConfig(ctx *getconfigContext, radioStatus *profile.RadioStatus) *pr
 			RadioSilence: false, // disabled by default
 		}
 	}
-	localServerURL, err := makeLocalServerBaseURL(localProfileServer)
+	localServerURL, err := makeLPSBaseURL(localProfileServer)
 	if err != nil {
-		log.Errorf("getRadioConfig: makeLocalServerBaseURL: %v", err)
+		log.Errorf("getRadioConfig: makeLPSBaseURL: %v", err)
 		return nil
 	}
 	if !ctx.localServerMap.upToDate {
-		err := updateLocalServerMap(ctx, localServerURL)
+		err := updateLPSMap(ctx, localServerURL)
 		if err != nil {
-			log.Errorf("getRadioConfig: updateLocalServerMap: %v", err)
+			log.Errorf("getRadioConfig: updateLPSMap: %v", err)
 			return nil
 		}
-		// Make sure HasLocalServer is set correctly for the AppInstanceConfig
-		updateHasLocalServer(ctx)
+		// Make sure HasLPS is set correctly for the AppInstanceConfig
+		updateHasLPS(ctx)
 	}
 	srvMap := ctx.localServerMap.servers
 	if len(srvMap) == 0 {

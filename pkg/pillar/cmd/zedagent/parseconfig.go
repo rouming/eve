@@ -171,15 +171,15 @@ func parseConfig(getconfigCtx *getconfigContext, config *zconfig.EdgeDevConfig,
 
 // Walk published AppInstanceConfig's and set Activate=false
 // Note that we don't currently wait for the shutdown to complete.
-// If withLocalServer is set we skip the app instances which are running
+// If withLPS is set we skip the app instances which are running
 // a Local Profile Server, and return the number of Local Profile Server apps
-func shutdownApps(getconfigCtx *getconfigContext, withLocalServer bool) (lpsCount uint) {
+func shutdownApps(getconfigCtx *getconfigContext, withLPS bool) (lpsCount uint) {
 	pub := getconfigCtx.pubAppInstanceConfig
 	items := pub.GetAll()
 	for _, c := range items {
 		config := c.(types.AppInstanceConfig)
 		if config.Activate {
-			if config.HasLocalServer && !withLocalServer {
+			if config.HasLPS && !withLPS {
 				log.Noticef("shutdownApps: defer for %s uuid %s",
 					config.DisplayName, config.Key())
 				lpsCount++
@@ -213,7 +213,7 @@ func countRunningApps(getconfigCtx *getconfigContext) (runningCount uint) {
 	return runningCount
 }
 
-// Defer shutting down app instances with HasLocalServer until all other app
+// Defer shutting down app instances with HasLPS until all other app
 // instances has halted
 func shutdownAppsGlobal(ctx *zedagentContext) {
 	lpsCount := shutdownApps(ctx.getconfigCtx, false)

@@ -663,14 +663,14 @@ const (
 type LocalAppCommand struct {
 	// Command to execute.
 	Command AppCommand
-	// LocalServerTimestamp : timestamp made by the local server when the request was created.
-	LocalServerTimestamp uint64
+	// LPSTimestamp : timestamp made by the local server when the request was created.
+	LPSTimestamp uint64
 	// DeviceTimestamp : timestamp made by EVE when the request was received.
 	DeviceTimestamp time.Time
 	// Completed is set to true by zedagent once the command completes.
 	Completed bool
 	// LastCompletedTimestamp : (server) timestamp of the last command completed for this app.
-	// If Completed is true, then this happens to be the same as LocalServerTimestamp.
+	// If Completed is true, then this happens to be the same as LPSTimestamp.
 	LastCompletedTimestamp uint64
 }
 
