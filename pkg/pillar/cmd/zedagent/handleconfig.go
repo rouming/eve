@@ -45,17 +45,17 @@ var serverNameAndPort string
 // Notify simple struct to pass notification messages
 type Notify struct{}
 
-// localServerAddr contains a source IP and a destination URL (without path)
+// lpsAddr contains a source IP and a destination URL (without path)
 // to use to connect to a particular local server.
-type localServerAddr struct {
-	bridgeIP        net.IP
-	localServerAddr string
-	appUUID         uuid.UUID
+type lpsAddr struct {
+	bridgeIP net.IP
+	lpsAddr  string
+	appUUID  uuid.UUID
 }
 
-// localServerMap is a map of all local (profile, radio, ...) servers
-type localServerMap struct {
-	servers  map[string][]localServerAddr // key = bridge name, value = local servers
+// lpsMap is a map of all local (profile, radio, ...) servers
+type lpsMap struct {
+	servers  map[string][]lpsAddr // key = bridge name, value = local servers
 	upToDate bool
 }
 
@@ -114,7 +114,7 @@ type getconfigContext struct {
 	globalProfile             string
 	localProfile              string
 	localProfileTrigger       chan Notify
-	localServerMap            *localServerMap
+	lpsMap                    *lpsMap
 	lastDevCmdTimestamp       uint64 // From lastDevCmdTimestampFile
 	locConfig                 *types.LOCConfig
 
@@ -359,7 +359,7 @@ func configTimerTask(getconfigCtx *getconfigContext, handleChannel chan interfac
 		getconfigCtx.configProcessingSkipFlag = configProcessingSkipFlag
 		triggerPublishDevInfo(ctx)
 	}
-	getconfigCtx.localServerMap.upToDate = false
+	getconfigCtx.lpsMap.upToDate = false
 	publishZedAgentStatus(getconfigCtx)
 	if withNetTracing {
 		publishConfigNetdump(ctx, retVal, tracedReqs)
@@ -401,7 +401,7 @@ func configTimerTask(getconfigCtx *getconfigContext, handleChannel chan interfac
 				getconfigCtx.configProcessingSkipFlag = configProcessingSkipFlag
 				triggerPublishDevInfo(ctx)
 			}
-			getconfigCtx.localServerMap.upToDate = false
+			getconfigCtx.lpsMap.upToDate = false
 			ctx.ps.CheckMaxTimeTopic(wdName, "getLastestConfig", start,
 				warningTime, errorTime)
 			publishZedAgentStatus(getconfigCtx)
@@ -970,20 +970,20 @@ func publishZedAgentStatus(getconfigCtx *getconfigContext) {
 }
 
 // updateLPSMap processes configuration of network instances to locate all local servers matching
-// the given localServerURL.
+// the given lpsURL.
 // Returns the source IP and a normalized URL for one or more network instances on which the local server
 // was found to be hosted.
-func updateLPSMap(getconfigCtx *getconfigContext, localServerURL string) error {
-	url, err := url.Parse(localServerURL)
+func updateLPSMap(getconfigCtx *getconfigContext, lpsURL string) error {
+	url, err := url.Parse(lpsURL)
 	if err != nil {
 		return fmt.Errorf("updateLPSMap: url.Parse: %v", err)
 	}
 
-	srvMap := &localServerMap{servers: make(map[string][]localServerAddr), upToDate: true}
+	srvMap := &lpsMap{servers: make(map[string][]lpsAddr), upToDate: true}
 	appNetworkStatuses := getconfigCtx.subAppNetworkStatus.GetAll()
 	networkInstanceConfigs := getconfigCtx.pubNetworkInstanceConfig.GetAll()
-	localServerHostname := url.Hostname()
-	localServerIP := net.ParseIP(localServerHostname)
+	lpsHostname := url.Hostname()
+	lpsIP := net.ParseIP(lpsHostname)
 
 	for _, entry := range appNetworkStatuses {
 		appNetworkStatus := entry.(types.AppNetworkStatus)
@@ -992,35 +992,35 @@ func updateLPSMap(getconfigCtx *getconfigContext, localServerURL string) error {
 			if bridgeIP == nil {
 				continue
 			}
-			if localServerIP != nil {
-				// check if the defined IP of localServer equals the allocated IP of the app
-				if ulStatus.AllocatedIPv4Addr == localServerIP.String() {
-					srvAddr := localServerAddr{
-						localServerAddr: localServerURL,
-						bridgeIP:        bridgeIP,
-						appUUID:         appNetworkStatus.UUIDandVersion.UUID,
+			if lpsIP != nil {
+				// check if the defined IP of lps equals the allocated IP of the app
+				if ulStatus.AllocatedIPv4Addr == lpsIP.String() {
+					srvAddr := lpsAddr{
+						lpsAddr:  lpsURL,
+						bridgeIP: bridgeIP,
+						appUUID:  appNetworkStatus.UUIDandVersion.UUID,
 					}
 					srvMap.servers[ulStatus.Bridge] = append(srvMap.servers[ulStatus.Bridge], srvAddr)
 				}
 				continue
 			}
-			// check if defined hostname of localServer is in DNS records
+			// check if defined hostname of lps is in DNS records
 			for _, ni := range networkInstanceConfigs {
 				networkInstanceConfig := ni.(types.NetworkInstanceConfig)
 				for _, dnsNameToIPList := range networkInstanceConfig.DnsNameToIPList {
-					if dnsNameToIPList.HostName != localServerHostname {
+					if dnsNameToIPList.HostName != lpsHostname {
 						continue
 					}
 					for _, ip := range dnsNameToIPList.IPs {
-						localServerURLReplaced := strings.Replace(
-							localServerURL, localServerHostname, ip.String(), 1)
+						lpsURLReplaced := strings.Replace(
+							lpsURL, lpsHostname, ip.String(), 1)
 						log.Functionf(
 							"updateLPSMap: will use %s for bridge %s",
-							localServerURLReplaced, ulStatus.Bridge)
-						srvAddr := localServerAddr{
-							localServerAddr: localServerURLReplaced,
-							bridgeIP:        bridgeIP,
-							appUUID:         appNetworkStatus.UUIDandVersion.UUID,
+							lpsURLReplaced, ulStatus.Bridge)
+						srvAddr := lpsAddr{
+							lpsAddr:  lpsURLReplaced,
+							bridgeIP: bridgeIP,
+							appUUID:  appNetworkStatus.UUIDandVersion.UUID,
 						}
 						srvMap.servers[ulStatus.Bridge] = append(srvMap.servers[ulStatus.Bridge], srvAddr)
 					}
@@ -1028,10 +1028,10 @@ func updateLPSMap(getconfigCtx *getconfigContext, localServerURL string) error {
 			}
 		}
 	}
-	// To handle concurrent access to localServerMap (from localProfileTimerTask, radioPOSTTask and potentially from
+	// To handle concurrent access to lpsMap (from localProfileTimerTask, radioPOSTTask and potentially from
 	// some more future tasks), we replace the map pointer at the very end of this function once the map is fully
 	// constructed.
-	getconfigCtx.localServerMap = srvMap
+	getconfigCtx.lpsMap = srvMap
 	return nil
 }
 
@@ -1040,7 +1040,7 @@ func updateLPSMap(getconfigCtx *getconfigContext, localServerURL string) error {
 // addresses the HasLPS will not immediately reflect that since we need
 // the IP address from AppNetworkStatus.
 func updateHasLPS(ctx *getconfigContext) {
-	srvMap := ctx.localServerMap.servers
+	srvMap := ctx.lpsMap.servers
 	items := ctx.pubAppInstanceConfig.GetAll()
 	for _, item := range items {
 		aic := item.(types.AppInstanceConfig)

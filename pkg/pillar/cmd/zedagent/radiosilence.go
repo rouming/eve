@@ -165,13 +165,13 @@ func getRadioConfig(ctx *getconfigContext, radioStatus *profile.RadioStatus) *pr
 			RadioSilence: false, // disabled by default
 		}
 	}
-	localServerURL, err := makeLPSBaseURL(localProfileServer)
+	lpsURL, err := makeLPSBaseURL(localProfileServer)
 	if err != nil {
 		log.Errorf("getRadioConfig: makeLPSBaseURL: %v", err)
 		return nil
 	}
-	if !ctx.localServerMap.upToDate {
-		err := updateLPSMap(ctx, localServerURL)
+	if !ctx.lpsMap.upToDate {
+		err := updateLPSMap(ctx, lpsURL)
 		if err != nil {
 			log.Errorf("getRadioConfig: updateLPSMap: %v", err)
 			return nil
@@ -179,17 +179,17 @@ func getRadioConfig(ctx *getconfigContext, radioStatus *profile.RadioStatus) *pr
 		// Make sure HasLPS is set correctly for the AppInstanceConfig
 		updateHasLPS(ctx)
 	}
-	srvMap := ctx.localServerMap.servers
+	srvMap := ctx.lpsMap.servers
 	if len(srvMap) == 0 {
-		log.Functionf("getRadioConfig: cannot find any configured apps for localServerURL: %s",
-			localServerURL)
+		log.Functionf("getRadioConfig: cannot find any configured apps for lpsURL: %s",
+			lpsURL)
 		return nil
 	}
 
 	var errList []string
 	for bridgeName, servers := range srvMap {
 		for _, srv := range servers {
-			fullURL := srv.localServerAddr + radioURLPath
+			fullURL := srv.lpsAddr + radioURLPath
 			radioConfig := &profile.RadioConfig{}
 			resp, err := zedcloud.SendLocalProto(
 				zedcloudCtx, fullURL, bridgeName, srv.bridgeIP, radioStatus, radioConfig)
@@ -203,7 +203,7 @@ func getRadioConfig(ctx *getconfigContext, radioStatus *profile.RadioStatus) *pr
 				continue
 			}
 			if resp.StatusCode == http.StatusNoContent {
-				log.Functionf("Local server %s does not require change in the radio state", localServerURL)
+				log.Functionf("Local server %s does not require change in the radio state", lpsURL)
 				touchRadioConfig()
 				return nil
 			}

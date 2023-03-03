@@ -63,7 +63,7 @@ type AppInstanceConfig struct {
 	PurgeCmd            AppInstanceOpsCmd
 	LocalRestartCmd     AppInstanceOpsCmd
 	LocalPurgeCmd       AppInstanceOpsCmd
-	HasLPS              bool // Set if localServerAddr matches
+	HasLPS              bool // Set if lpsAddr matches
 	// XXX: to be deprecated, use CipherBlockStatus instead
 	CloudInitUserData *string `json:"pubsub-large-CloudInitUserData"`
 	RemoteConsole     bool

@@ -26,19 +26,19 @@ const (
 )
 
 // makeLPSBaseURL constructs local server URL without path.
-func makeLPSBaseURL(localServerAddr string) (string, error) {
-	localServerURL := fmt.Sprintf("http://%s", localServerAddr)
-	u, err := url.Parse(localServerURL)
+func makeLPSBaseURL(lpsAddr string) (string, error) {
+	lpsURL := fmt.Sprintf("http://%s", lpsAddr)
+	u, err := url.Parse(lpsURL)
 	if err != nil {
 		return "", fmt.Errorf("url.Parse: %s", err)
 	}
 	if u.Port() == "" {
-		localServerURL = fmt.Sprintf("%s:%s", localServerURL, defaultLPSPort)
+		lpsURL = fmt.Sprintf("%s:%s", lpsURL, defaultLPSPort)
 	}
-	return localServerURL, nil
+	return lpsURL, nil
 }
 
-// Run a periodic fetch of the currentProfile from localServer
+// Run a periodic fetch of the currentProfile from lps
 func localProfileTimerTask(handleChannel chan interface{}, getconfigCtx *getconfigContext) {
 
 	ctx := getconfigCtx.zedagentCtx
@@ -111,12 +111,12 @@ func readSavedLocalProfile(getconfigCtx *getconfigContext) (*profile.LocalProfil
 }
 
 // getLocalProfileConfig connects to local profile server to fetch the current profile
-func getLocalProfileConfig(getconfigCtx *getconfigContext, localServerURL string) (*profile.LocalProfile, error) {
+func getLocalProfileConfig(getconfigCtx *getconfigContext, lpsURL string) (*profile.LocalProfile, error) {
 
-	log.Functionf("getLocalProfileConfig(%s)", localServerURL)
+	log.Functionf("getLocalProfileConfig(%s)", lpsURL)
 
-	if !getconfigCtx.localServerMap.upToDate {
-		err := updateLPSMap(getconfigCtx, localServerURL)
+	if !getconfigCtx.lpsMap.upToDate {
+		err := updateLPSMap(getconfigCtx, lpsURL)
 		if err != nil {
 			return nil, fmt.Errorf("getLocalProfileConfig: updateLPSMap: %v", err)
 		}
@@ -124,17 +124,17 @@ func getLocalProfileConfig(getconfigCtx *getconfigContext, localServerURL string
 		updateHasLPS(getconfigCtx)
 	}
 
-	srvMap := getconfigCtx.localServerMap.servers
+	srvMap := getconfigCtx.lpsMap.servers
 	if len(srvMap) == 0 {
 		return nil, fmt.Errorf(
-			"getLocalProfileConfig: cannot find any configured apps for localServerURL: %s",
-			localServerURL)
+			"getLocalProfileConfig: cannot find any configured apps for lpsURL: %s",
+			lpsURL)
 	}
 
 	var errList []string
 	for bridgeName, servers := range srvMap {
 		for _, srv := range servers {
-			fullURL := srv.localServerAddr + profileURLPath
+			fullURL := srv.lpsAddr + profileURLPath
 			localProfile := &profile.LocalProfile{}
 			resp, err := zedcloud.SendLocalProto(
 				zedcloudCtx, fullURL, bridgeName, srv.bridgeIP, nil, localProfile)
@@ -258,12 +258,12 @@ func getLocalProfile(ctx *getconfigContext, skipFetch bool) string {
 	if skipFetch {
 		return ctx.localProfile
 	}
-	localServerURL, err := makeLPSBaseURL(localProfileServer)
+	lpsURL, err := makeLPSBaseURL(localProfileServer)
 	if err != nil {
 		log.Errorf("getLocalProfile: makeLPSBaseURL: %s", err)
 		return ""
 	}
-	localProfileConfig, err := getLocalProfileConfig(ctx, localServerURL)
+	localProfileConfig, err := getLocalProfileConfig(ctx, lpsURL)
 	if err != nil {
 		log.Errorf("getLocalProfile: getLocalProfileConfig: %s", err)
 		// Return last known value

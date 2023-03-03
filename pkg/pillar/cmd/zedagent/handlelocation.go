@@ -171,13 +171,13 @@ func publishLocationToLPS(ctx *getconfigContext, locInfo *info.ZInfoLocation) {
 	if localProfileServer == "" {
 		return
 	}
-	localServerURL, err := makeLPSBaseURL(localProfileServer)
+	lpsURL, err := makeLPSBaseURL(localProfileServer)
 	if err != nil {
 		log.Errorf("publishLocationToLPS: makeLPSBaseURL: %v", err)
 		return
 	}
-	if !ctx.localServerMap.upToDate {
-		err := updateLPSMap(ctx, localServerURL)
+	if !ctx.lpsMap.upToDate {
+		err := updateLPSMap(ctx, lpsURL)
 		if err != nil {
 			log.Errorf("publishLocationToLPS: updateLPSMap: %v", err)
 			return
@@ -185,17 +185,17 @@ func publishLocationToLPS(ctx *getconfigContext, locInfo *info.ZInfoLocation) {
 		// Make sure HasLPS is set correctly for the AppInstanceConfig
 		updateHasLPS(ctx)
 	}
-	srvMap := ctx.localServerMap.servers
+	srvMap := ctx.lpsMap.servers
 	if len(srvMap) == 0 {
 		log.Functionf("publishLocationToLPS: cannot find any configured "+
-			"apps for localServerURL: %s", localServerURL)
+			"apps for lpsURL: %s", lpsURL)
 		return
 	}
 
 	var errList []string
 	for bridgeName, servers := range srvMap {
 		for _, srv := range servers {
-			fullURL := srv.localServerAddr + lpsLocationURLPath
+			fullURL := srv.lpsAddr + lpsLocationURLPath
 			resp, err := zedcloud.SendLocalProto(
 				zedcloudCtx, fullURL, bridgeName, srv.bridgeIP, locInfo, nil)
 			ctx.lpsLastPublishedLocation = time.Now()

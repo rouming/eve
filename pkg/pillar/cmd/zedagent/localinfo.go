@@ -114,13 +114,13 @@ func postLocalAppInfo(ctx *getconfigContext) *profile.LocalAppCmdList {
 	if localProfileServer == "" {
 		return nil
 	}
-	localServerURL, err := makeLPSBaseURL(localProfileServer)
+	lpsURL, err := makeLPSBaseURL(localProfileServer)
 	if err != nil {
 		log.Errorf("sendLocalAppInfo: makeLPSBaseURL: %v", err)
 		return nil
 	}
-	if !ctx.localServerMap.upToDate {
-		err := updateLPSMap(ctx, localServerURL)
+	if !ctx.lpsMap.upToDate {
+		err := updateLPSMap(ctx, lpsURL)
 		if err != nil {
 			log.Errorf("sendLocalAppInfo: updateLPSMap: %v", err)
 			return nil
@@ -128,10 +128,10 @@ func postLocalAppInfo(ctx *getconfigContext) *profile.LocalAppCmdList {
 		// Make sure HasLPS is set correctly for the AppInstanceConfig
 		updateHasLPS(ctx)
 	}
-	srvMap := ctx.localServerMap.servers
+	srvMap := ctx.lpsMap.servers
 	if len(srvMap) == 0 {
-		log.Functionf("sendLocalAppInfo: cannot find any configured apps for localServerURL: %s",
-			localServerURL)
+		log.Functionf("sendLocalAppInfo: cannot find any configured apps for lpsURL: %s",
+			lpsURL)
 		return nil
 	}
 
@@ -139,7 +139,7 @@ func postLocalAppInfo(ctx *getconfigContext) *profile.LocalAppCmdList {
 	var errList []string
 	for bridgeName, servers := range srvMap {
 		for _, srv := range servers {
-			fullURL := srv.localServerAddr + localAppInfoURLPath
+			fullURL := srv.lpsAddr + localAppInfoURLPath
 			appCmds := &profile.LocalAppCmdList{}
 			resp, err := zedcloud.SendLocalProto(
 				zedcloudCtx, fullURL, bridgeName, srv.bridgeIP, localInfo, appCmds)
@@ -166,7 +166,7 @@ func postLocalAppInfo(ctx *getconfigContext) *profile.LocalAppCmdList {
 				fallthrough
 			case http.StatusNoContent:
 				log.Functionf("Local server %s does not require additional app commands to execute",
-					localServerURL)
+					lpsURL)
 				updateLocalAppInfoTicker(ctx, false)
 				return nil
 			default:
@@ -605,13 +605,13 @@ func postLocalDevInfo(ctx *getconfigContext) *profile.LocalDevCmd {
 	if localProfileServer == "" {
 		return nil
 	}
-	localServerURL, err := makeLPSBaseURL(localProfileServer)
+	lpsURL, err := makeLPSBaseURL(localProfileServer)
 	if err != nil {
 		log.Errorf("sendLocalDevInfo: makeLPSBaseURL: %v", err)
 		return nil
 	}
-	if !ctx.localServerMap.upToDate {
-		err := updateLPSMap(ctx, localServerURL)
+	if !ctx.lpsMap.upToDate {
+		err := updateLPSMap(ctx, lpsURL)
 		if err != nil {
 			log.Errorf("sendLocalDevInfo: updateLPSMap: %v", err)
 			return nil
@@ -619,10 +619,10 @@ func postLocalDevInfo(ctx *getconfigContext) *profile.LocalDevCmd {
 		// Make sure HasLPS is set correctly for the AppInstanceConfig
 		updateHasLPS(ctx)
 	}
-	srvMap := ctx.localServerMap.servers
+	srvMap := ctx.lpsMap.servers
 	if len(srvMap) == 0 {
-		log.Functionf("sendLocalDevInfo: cannot find any configured devs for localServerURL: %s",
-			localServerURL)
+		log.Functionf("sendLocalDevInfo: cannot find any configured devs for lpsURL: %s",
+			lpsURL)
 		return nil
 	}
 
@@ -630,7 +630,7 @@ func postLocalDevInfo(ctx *getconfigContext) *profile.LocalDevCmd {
 	var errList []string
 	for bridgeName, servers := range srvMap {
 		for _, srv := range servers {
-			fullURL := srv.localServerAddr + localDevInfoURLPath
+			fullURL := srv.lpsAddr + localDevInfoURLPath
 			devCmd := &profile.LocalDevCmd{}
 			resp, err := zedcloud.SendLocalProto(
 				zedcloudCtx, fullURL, bridgeName, srv.bridgeIP,
@@ -655,7 +655,7 @@ func postLocalDevInfo(ctx *getconfigContext) *profile.LocalDevCmd {
 				return devCmd
 			case http.StatusNoContent:
 				log.Functionf("Local server %s does not require additional dev commands to execute",
-					localServerURL)
+					lpsURL)
 				updateLocalDevInfoTicker(ctx, false)
 				return nil
 			default:

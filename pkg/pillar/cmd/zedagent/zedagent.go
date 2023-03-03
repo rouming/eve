@@ -555,7 +555,7 @@ func (zedagentCtx *zedagentContext) init() {
 
 	// Initialize context used to get and parse device configuration.
 	getconfigCtx := &getconfigContext{
-		localServerMap: &localServerMap{},
+		lpsMap: &lpsMap{},
 		// default value of currentMetricInterval
 		currentMetricInterval: zedagentCtx.globalConfig.GlobalValueInt(types.MetricInterval),
 		// edge-view configure
@@ -711,7 +711,7 @@ func waitUntilDNSReady(zedagentCtx *zedagentContext, stillRunning *time.Ticker) 
 			zedagentCtx.subEncryptedKeyFromDevice.ProcessChange(change)
 
 		case change := <-getconfigCtx.subAppNetworkStatus.MsgChan():
-			getconfigCtx.localServerMap.upToDate = false
+			getconfigCtx.lpsMap.upToDate = false
 			getconfigCtx.subAppNetworkStatus.ProcessChange(change)
 
 		case change := <-zedagentCtx.subWwanMetrics.MsgChan():
@@ -808,7 +808,7 @@ func mainEventLoop(zedagentCtx *zedagentContext, stillRunning *time.Ticker) {
 			getconfigCtx.subNodeAgentStatus.ProcessChange(change)
 
 		case change := <-getconfigCtx.subAppNetworkStatus.MsgChan():
-			getconfigCtx.localServerMap.upToDate = false
+			getconfigCtx.lpsMap.upToDate = false
 			getconfigCtx.subAppNetworkStatus.ProcessChange(change)
 
 		case change := <-dnsCtx.subDeviceNetworkStatus.MsgChan():
