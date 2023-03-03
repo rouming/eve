@@ -78,7 +78,7 @@ type getconfigContext struct {
 	metricsTickerHandle       interface{}
 	locationCloudTickerHandle interface{}
 	locationAppTickerHandle   interface{}
-	localProfileTickerHandle  interface{}
+	lpsTickerHandle           interface{}
 	pubDevicePortConfig       pubsub.Publication
 	pubPhysicalIOAdapters     pubsub.Publication
 	devicePortConfig          types.DevicePortConfig
@@ -113,7 +113,7 @@ type getconfigContext struct {
 	currentProfile            string
 	globalProfile             string
 	localProfile              string
-	localProfileTrigger       chan Notify
+	lpsTrigger                chan Notify
 	lpsMap                    *lpsMap
 	lastDevCmdTimestamp       uint64 // From lastDevCmdTimestampFile
 	locConfig                 *types.LOCConfig
@@ -1028,7 +1028,7 @@ func updateLPSMap(getconfigCtx *getconfigContext, lpsURL string) error {
 			}
 		}
 	}
-	// To handle concurrent access to lpsMap (from localProfileTimerTask, radioPOSTTask and potentially from
+	// To handle concurrent access to lpsMap (from lpsTimerTask, radioPOSTTask and potentially from
 	// some more future tasks), we replace the map pointer at the very end of this function once the map is fully
 	// constructed.
 	getconfigCtx.lpsMap = srvMap

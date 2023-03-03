@@ -480,8 +480,8 @@ func Run(ps *pubsub.PubSub, loggerArg *logrus.Logger, logArg *base.LogObject, ar
 	getconfigCtx.locationCloudTickerHandle = <-handleChannel
 	getconfigCtx.locationAppTickerHandle = <-handleChannel
 
-	//trigger channel for localProfile state machine
-	getconfigCtx.localProfileTrigger = make(chan Notify, 1)
+	//trigger channel for lps state machine
+	getconfigCtx.lpsTrigger = make(chan Notify, 1)
 	//process saved local profile
 	processSavedProfile(getconfigCtx)
 
@@ -502,10 +502,10 @@ func Run(ps *pubsub.PubSub, loggerArg *logrus.Logger, logArg *base.LogObject, ar
 	getconfigCtx.configTickerHandle = configTickerHandle
 
 	// start the local profile fetch tasks
-	log.Functionf("Creating %s at %s", "localProfileTimerTask", agentlog.GetMyStack())
-	go localProfileTimerTask(handleChannel, getconfigCtx)
-	localProfileTickerHandle := <-handleChannel
-	getconfigCtx.localProfileTickerHandle = localProfileTickerHandle
+	log.Functionf("Creating %s at %s", "lpsTimerTask", agentlog.GetMyStack())
+	go lpsTimerTask(handleChannel, getconfigCtx)
+	lpsTickerHandle := <-handleChannel
+	getconfigCtx.lpsTickerHandle = lpsTickerHandle
 
 	// start task fetching radio config from local server
 	go radioPOSTTask(getconfigCtx)
