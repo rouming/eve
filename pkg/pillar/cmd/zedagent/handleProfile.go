@@ -20,9 +20,9 @@ import (
 )
 
 const (
-	defaultLPSPort        = "8888"
-	profileURLPath        = "/api/v1/local_profile"
-	savedLocalProfileFile = "lastlocalprofile"
+	defaultLPSPort = "8888"
+	profileURLPath = "/api/v1/local_profile"
+	savedLPSFile   = "lastlocalprofile"
 )
 
 // makeLPSBaseURL constructs local server URL without path.
@@ -58,7 +58,7 @@ func localProfileTimerTask(handleChannel chan interface{}, getconfigCtx *getconf
 	<-getconfigCtx.localProfileTrigger
 	log.Functionf("localProfileTimerTask: waiting for localProfileTrigger done")
 	//trigger again to pass into loop
-	triggerGetLocalProfile(getconfigCtx)
+	triggerGetLPS(getconfigCtx)
 
 	wdName := agentName + "currentProfile"
 
@@ -72,12 +72,12 @@ func localProfileTimerTask(handleChannel chan interface{}, getconfigCtx *getconf
 		case <-getconfigCtx.localProfileTrigger:
 			start := time.Now()
 			profileStateMachine(getconfigCtx, false)
-			ctx.ps.CheckMaxTimeTopic(wdName, "getLocalProfileConfigTrigger", start,
+			ctx.ps.CheckMaxTimeTopic(wdName, "getLPSConfigTrigger", start,
 				warningTime, errorTime)
 		case <-ticker.C:
 			start := time.Now()
 			profileStateMachine(getconfigCtx, false)
-			ctx.ps.CheckMaxTimeTopic(wdName, "getLocalProfileConfigTimer", start,
+			ctx.ps.CheckMaxTimeTopic(wdName, "getLPSConfigTimer", start,
 				warningTime, errorTime)
 		case <-stillRunning.C:
 		}
@@ -85,7 +85,7 @@ func localProfileTimerTask(handleChannel chan interface{}, getconfigCtx *getconf
 	}
 }
 
-func parseLocalProfile(localProfileBytes []byte) (*profile.LocalProfile, error) {
+func parseLPS(localProfileBytes []byte) (*profile.LocalProfile, error) {
 	var localProfile = &profile.LocalProfile{}
 	err := proto.Unmarshal(localProfileBytes, localProfile)
 	if err != nil {
@@ -95,30 +95,30 @@ func parseLocalProfile(localProfileBytes []byte) (*profile.LocalProfile, error) 
 }
 
 // read saved local profile in case of particular reboot reason
-func readSavedLocalProfile(getconfigCtx *getconfigContext) (*profile.LocalProfile, error) {
+func readSavedLPS(getconfigCtx *getconfigContext) (*profile.LocalProfile, error) {
 	localProfileMessage, ts, err := readSavedConfig(
 		getconfigCtx.zedagentCtx.globalConfig.GlobalValueInt(types.StaleConfigTime),
-		filepath.Join(checkpointDirname, savedLocalProfileFile), false)
+		filepath.Join(checkpointDirname, savedLPSFile), false)
 	if err != nil {
-		return nil, fmt.Errorf("readSavedLocalProfile: %v", err)
+		return nil, fmt.Errorf("readSavedLPS: %v", err)
 	}
 	if localProfileMessage != nil {
 		log.Noticef("Using saved local profile dated %s",
 			ts.Format(time.RFC3339Nano))
-		return parseLocalProfile(localProfileMessage)
+		return parseLPS(localProfileMessage)
 	}
 	return nil, nil
 }
 
-// getLocalProfileConfig connects to local profile server to fetch the current profile
-func getLocalProfileConfig(getconfigCtx *getconfigContext, lpsURL string) (*profile.LocalProfile, error) {
+// getLPSConfig connects to local profile server to fetch the current profile
+func getLPSConfig(getconfigCtx *getconfigContext, lpsURL string) (*profile.LocalProfile, error) {
 
-	log.Functionf("getLocalProfileConfig(%s)", lpsURL)
+	log.Functionf("getLPSConfig(%s)", lpsURL)
 
 	if !getconfigCtx.lpsMap.upToDate {
 		err := updateLPSMap(getconfigCtx, lpsURL)
 		if err != nil {
-			return nil, fmt.Errorf("getLocalProfileConfig: updateLPSMap: %v", err)
+			return nil, fmt.Errorf("getLPSConfig: updateLPSMap: %v", err)
 		}
 		// Make sure HasLPS is set correctly for the AppInstanceConfig
 		updateHasLPS(getconfigCtx)
@@ -127,7 +127,7 @@ func getLocalProfileConfig(getconfigCtx *getconfigContext, lpsURL string) (*prof
 	srvMap := getconfigCtx.lpsMap.servers
 	if len(srvMap) == 0 {
 		return nil, fmt.Errorf(
-			"getLocalProfileConfig: cannot find any configured apps for lpsURL: %s",
+			"getLPSConfig: cannot find any configured apps for lpsURL: %s",
 			lpsURL)
 	}
 
@@ -155,24 +155,24 @@ func getLocalProfileConfig(getconfigCtx *getconfigContext, lpsURL string) (*prof
 			return localProfile, nil
 		}
 	}
-	return nil, fmt.Errorf("getLocalProfileConfig: all attempts failed: %s", strings.Join(errList, ";"))
+	return nil, fmt.Errorf("getLPSConfig: all attempts failed: %s", strings.Join(errList, ";"))
 }
 
-// saveOrTouchReceivedLocalProfile updates modification time of received LocalProfile in case of no changes
-// or updates content of received LocalProfile in case of changes or no checkpoint file
-func saveOrTouchReceivedLocalProfile(getconfigCtx *getconfigContext, localProfile *profile.LocalProfile) {
+// saveOrTouchReceivedLPS updates modification time of received LPS in case of no changes
+// or updates content of received LPS in case of changes or no checkpoint file
+func saveOrTouchReceivedLPS(getconfigCtx *getconfigContext, localProfile *profile.LocalProfile) {
 	if getconfigCtx.localProfile == localProfile.GetLocalProfile() &&
 		getconfigCtx.profileServerToken == localProfile.GetServerToken() &&
-		existsSavedConfig(savedLocalProfileFile) {
-		touchSavedConfig(savedLocalProfileFile)
+		existsSavedConfig(savedLPSFile) {
+		touchSavedConfig(savedLPSFile)
 		return
 	}
 	contents, err := proto.Marshal(localProfile)
 	if err != nil {
-		log.Errorf("saveOrTouchReceivedLocalProfile Marshalling failed: %s", err)
+		log.Errorf("saveOrTouchReceivedLPS Marshalling failed: %s", err)
 		return
 	}
-	saveConfig(savedLocalProfileFile, contents)
+	saveConfig(savedLPSFile, contents)
 	return
 }
 
@@ -191,7 +191,7 @@ func parseProfile(ctx *getconfigContext, config *zconfig.EdgeDevConfig) {
 		log.Noticef("parseProfile: LPS changed from %s to %s",
 			ctx.lps, config.LocalProfileServer)
 		ctx.lps = config.LocalProfileServer
-		triggerGetLocalProfile(ctx)
+		triggerGetLPS(ctx)
 		triggerRadioPOST(ctx)
 		updateLocalAppInfoTicker(ctx, false)
 		triggerLocalAppInfoPOST(ctx)
@@ -212,9 +212,9 @@ func determineCurrentProfile(ctx *getconfigContext) string {
 	return ctx.localProfile
 }
 
-// triggerGetLocalProfile notifies task to reload local profile from profileServer
-func triggerGetLocalProfile(ctx *getconfigContext) {
-	log.Functionf("triggerGetLocalProfile")
+// triggerGetLPS notifies task to reload local profile from profileServer
+func triggerGetLPS(ctx *getconfigContext) {
+	log.Functionf("triggerGetLPS")
 	select {
 	case ctx.localProfileTrigger <- Notify{}:
 	default:
@@ -226,7 +226,7 @@ func triggerGetLocalProfile(ctx *getconfigContext) {
 // If skipFetch is set we do not look for an update from a lps
 // but keep the current localProfile
 func profileStateMachine(ctx *getconfigContext, skipFetch bool) {
-	localProfile := getLocalProfile(ctx, skipFetch)
+	localProfile := getLPS(ctx, skipFetch)
 	if ctx.localProfile != localProfile {
 		log.Noticef("local profile changed from %s to %s",
 			ctx.localProfile, localProfile)
@@ -241,17 +241,17 @@ func profileStateMachine(ctx *getconfigContext, skipFetch bool) {
 	}
 }
 
-// getLocalProfile returns the local profile to use, and cleans up ctx and
+// getLPS returns the local profile to use, and cleans up ctx and
 // checkpoint when the local profile server has been removed. If skipCheck
 // is not set it will query the local profile server.
 // It returns the last known value until it gets a response from the server
 // or lps is cleared.
-func getLocalProfile(ctx *getconfigContext, skipFetch bool) string {
+func getLPS(ctx *getconfigContext, skipFetch bool) string {
 	lps := ctx.lps
 	if lps == "" {
 		if ctx.localProfile != "" {
 			log.Noticef("clearing localProfile checkpoint since no server")
-			cleanSavedConfig(savedLocalProfileFile)
+			cleanSavedConfig(savedLPSFile)
 		}
 		return ""
 	}
@@ -260,25 +260,25 @@ func getLocalProfile(ctx *getconfigContext, skipFetch bool) string {
 	}
 	lpsURL, err := makeLPSBaseURL(lps)
 	if err != nil {
-		log.Errorf("getLocalProfile: makeLPSBaseURL: %s", err)
+		log.Errorf("getLPS: makeLPSBaseURL: %s", err)
 		return ""
 	}
-	localProfileConfig, err := getLocalProfileConfig(ctx, lpsURL)
+	localProfileConfig, err := getLPSConfig(ctx, lpsURL)
 	if err != nil {
-		log.Errorf("getLocalProfile: getLocalProfileConfig: %s", err)
+		log.Errorf("getLPS: getLPSConfig: %s", err)
 		// Return last known value
 		return ctx.localProfile
 	}
 	localProfile := localProfileConfig.GetLocalProfile()
-	saveOrTouchReceivedLocalProfile(ctx, localProfileConfig)
+	saveOrTouchReceivedLPS(ctx, localProfileConfig)
 	return localProfile
 }
 
 // processSavedProfile reads saved local profile and set it
 func processSavedProfile(ctx *getconfigContext) {
-	localProfile, err := readSavedLocalProfile(ctx)
+	localProfile, err := readSavedLPS(ctx)
 	if err != nil {
-		log.Functionf("processSavedProfile: readSavedLocalProfile %s", err)
+		log.Functionf("processSavedProfile: readSavedLPS %s", err)
 		return
 	}
 	if localProfile != nil {
