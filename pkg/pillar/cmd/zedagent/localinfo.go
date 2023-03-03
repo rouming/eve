@@ -110,11 +110,11 @@ func localAppInfoPOSTTask(ctx *getconfigContext) {
 // Post the current state of locally running application instances to the local server
 // and optionally receive a set of app commands to run in the response.
 func postLocalAppInfo(ctx *getconfigContext) *profile.LocalAppCmdList {
-	localProfileServer := ctx.localProfileServer
-	if localProfileServer == "" {
+	lps := ctx.lps
+	if lps == "" {
 		return nil
 	}
-	lpsURL, err := makeLPSBaseURL(localProfileServer)
+	lpsURL, err := makeLPSBaseURL(lps)
 	if err != nil {
 		log.Errorf("sendLocalAppInfo: makeLPSBaseURL: %v", err)
 		return nil
@@ -601,11 +601,11 @@ func localDevInfoPOSTTask(ctx *getconfigContext) {
 // Post the current state of locally running devlication instances to the local server
 // and optionally receive a set of dev commands to run in the response.
 func postLocalDevInfo(ctx *getconfigContext) *profile.LocalDevCmd {
-	localProfileServer := ctx.localProfileServer
-	if localProfileServer == "" {
+	lps := ctx.lps
+	if lps == "" {
 		return nil
 	}
-	lpsURL, err := makeLPSBaseURL(localProfileServer)
+	lpsURL, err := makeLPSBaseURL(lps)
 	if err != nil {
 		log.Errorf("sendLocalDevInfo: makeLPSBaseURL: %v", err)
 		return nil

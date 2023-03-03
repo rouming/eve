@@ -167,11 +167,11 @@ func publishLocationToLPS(ctx *getconfigContext, locInfo *info.ZInfoLocation) {
 			return
 		}
 	}
-	localProfileServer := ctx.localProfileServer
-	if localProfileServer == "" {
+	lps := ctx.lps
+	if lps == "" {
 		return
 	}
-	lpsURL, err := makeLPSBaseURL(localProfileServer)
+	lpsURL, err := makeLPSBaseURL(lps)
 	if err != nil {
 		log.Errorf("publishLocationToLPS: makeLPSBaseURL: %v", err)
 		return

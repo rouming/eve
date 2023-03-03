@@ -108,7 +108,7 @@ type getconfigContext struct {
 	lastProcessedConfig       time.Time // controller or local clocks
 	lastConfigTimestamp       time.Time // controller clocks (zero if not available)
 	lastConfigSource          configSource
-	localProfileServer        string
+	lps                       string
 	profileServerToken        string
 	currentProfile            string
 	globalProfile             string

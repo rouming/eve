@@ -158,14 +158,14 @@ func getRadioStatus(ctx *getconfigContext) *profile.RadioStatus {
 }
 
 func getRadioConfig(ctx *getconfigContext, radioStatus *profile.RadioStatus) *profile.RadioConfig {
-	localProfileServer := ctx.localProfileServer
-	if localProfileServer == "" {
+	lps := ctx.lps
+	if lps == "" {
 		// default configuration
 		return &profile.RadioConfig{
 			RadioSilence: false, // disabled by default
 		}
 	}
-	lpsURL, err := makeLPSBaseURL(localProfileServer)
+	lpsURL, err := makeLPSBaseURL(lps)
 	if err != nil {
 		log.Errorf("getRadioConfig: makeLPSBaseURL: %v", err)
 		return nil

@@ -54,7 +54,7 @@ func localProfileTimerTask(handleChannel chan interface{}, getconfigCtx *getconf
 	handleChannel <- ticker
 
 	log.Functionf("localProfileTimerTask: waiting for localProfileTrigger")
-	//wait for the first trigger comes from parseProfile to have information about localProfileServer
+	//wait for the first trigger comes from parseProfile to have information about lps
 	<-getconfigCtx.localProfileTrigger
 	log.Functionf("localProfileTimerTask: waiting for localProfileTrigger done")
 	//trigger again to pass into loop
@@ -187,10 +187,10 @@ func parseProfile(ctx *getconfigContext, config *zconfig.EdgeDevConfig) {
 		ctx.globalProfile = config.GlobalProfile
 	}
 	ctx.profileServerToken = config.ProfileServerToken
-	if ctx.localProfileServer != config.LocalProfileServer {
-		log.Noticef("parseProfile: LocalProfileServer changed from %s to %s",
-			ctx.localProfileServer, config.LocalProfileServer)
-		ctx.localProfileServer = config.LocalProfileServer
+	if ctx.lps != config.LocalProfileServer {
+		log.Noticef("parseProfile: LPS changed from %s to %s",
+			ctx.lps, config.LocalProfileServer)
+		ctx.lps = config.LocalProfileServer
 		triggerGetLocalProfile(ctx)
 		triggerRadioPOST(ctx)
 		updateLocalAppInfoTicker(ctx, false)
@@ -221,9 +221,9 @@ func triggerGetLocalProfile(ctx *getconfigContext) {
 	}
 }
 
-// run state machine to handle changes to globalProfile, localProfileServer,
+// run state machine to handle changes to globalProfile, lps,
 // or to do periodic fetch of the local profile
-// If skipFetch is set we do not look for an update from a localProfileServer
+// If skipFetch is set we do not look for an update from a lps
 // but keep the current localProfile
 func profileStateMachine(ctx *getconfigContext, skipFetch bool) {
 	localProfile := getLocalProfile(ctx, skipFetch)
@@ -245,10 +245,10 @@ func profileStateMachine(ctx *getconfigContext, skipFetch bool) {
 // checkpoint when the local profile server has been removed. If skipCheck
 // is not set it will query the local profile server.
 // It returns the last known value until it gets a response from the server
-// or localProfileServer is cleared.
+// or lps is cleared.
 func getLocalProfile(ctx *getconfigContext, skipFetch bool) string {
-	localProfileServer := ctx.localProfileServer
-	if localProfileServer == "" {
+	lps := ctx.lps
+	if lps == "" {
 		if ctx.localProfile != "" {
 			log.Noticef("clearing localProfile checkpoint since no server")
 			cleanSavedConfig(savedLocalProfileFile)
@@ -258,7 +258,7 @@ func getLocalProfile(ctx *getconfigContext, skipFetch bool) string {
 	if skipFetch {
 		return ctx.localProfile
 	}
-	lpsURL, err := makeLPSBaseURL(localProfileServer)
+	lpsURL, err := makeLPSBaseURL(lps)
 	if err != nil {
 		log.Errorf("getLocalProfile: makeLPSBaseURL: %s", err)
 		return ""
