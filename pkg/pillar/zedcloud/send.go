@@ -396,6 +396,10 @@ func SendOnIntf(workContext context.Context, ctx *ZedCloudContext, destURL strin
 		useTLS = true
 	}
 
+	goRoutine := utils.GetGoRoutineID()
+	log.Noticef("HEY! SendOnIntf from Go routine %d for URL %s via intf %s",
+		goRoutine, destURL, intf)
+
 	if strings.Contains(destURL, "/edgedevice/") {
 		isEdgenode = true
 		if strings.Contains(destURL, "/register") {
