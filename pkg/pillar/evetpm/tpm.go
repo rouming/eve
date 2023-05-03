@@ -770,15 +770,7 @@ func WipeOutStaleSealedKeyIfAny() error {
 //PCRBankSHA256Enabled checks if SHA256 PCR Bank is
 //enabled
 func PCRBankSHA256Enabled() bool {
-	//Check if we have cached it already, if not fetch, store and return
-	if pcrBank256Status == PCRBank256StatusUnknown {
-		if pcrBankSHA256EnabledHelper() {
-			pcrBank256Status = PCRBank256StatusSupported
-		} else {
-			pcrBank256Status = PCRBank256StatusNotSupported
-		}
-	}
-	return pcrBank256Status == PCRBank256StatusSupported
+	return false
 }
 
 func pcrBankSHA256EnabledHelper() bool {
