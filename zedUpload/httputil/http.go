@@ -307,6 +307,10 @@ func execCmdGet(ctx context.Context, objSize int64, localFile string, host strin
 			// last modified changed, retry from the beginning
 			lastModified = newLastModified
 			forceRestart = true
+			err = resp.Body.Close()
+			if err != nil {
+				appendToErrorList(fmt.Sprintf("error close Body: %v", err))
+			}
 			continue
 		}
 		if resp.StatusCode == http.StatusOK {
@@ -342,12 +346,12 @@ func execCmdGet(ctx context.Context, objSize int64, localFile string, host strin
 			stats.Asize = copiedSize
 			types.SendStats(prgNotify, stats)
 		}
-		if done {
-			break
-		}
 		err = resp.Body.Close()
 		if err != nil {
 			appendToErrorList(fmt.Sprintf("error close Body: %v", err))
+		}
+		if done {
+			break
 		}
 	}
 	if !done {
