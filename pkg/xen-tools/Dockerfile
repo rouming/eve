@@ -50,14 +50,14 @@ RUN make src && make install DESTDIR=/out && make install
 
 # Filter out unneeded stuff
 RUN rm -rf /out/usr/man
-RUN strip /out/usr/lib/* || :
+#RUN strip /out/usr/lib/* || :
 
 # When changing this version, also update SEABIOS_UPSTREAM_REVISION to whatever is in `Config.mk` in the xen source
 ENV XEN_VERSION 4.15.0
 ENV XEN_SOURCE=https://downloads.xenproject.org/release/xen/${XEN_VERSION}/xen-${XEN_VERSION}.tar.gz
 ENV EXTRA_QEMUU_CONFIGURE_ARGS="--enable-libusb --enable-linux-aio \
     --enable-vhost-net --enable-vhost-vsock --enable-vhost-scsi --enable-vhost-kernel \
-    --enable-vhost-user --enable-linux-io-uring"
+    --enable-vhost-user --enable-linux-io-uring --disable-strip --enable-debug --disable-pie"
 
 WORKDIR /
 
@@ -96,7 +96,7 @@ RUN rm -rf /out/usr/share/qemu-xen/qemu/edk2-* /out/var/run /usr/include /usr/li
 # FIXME: this is a workaround for Xen on ARM still requiring qemu-system-i386
 #   https://wiki.xenproject.org/wiki/Xen_ARM_with_Virtualization_Extensions#Use_of_qemu-system-i386_on_ARM
 WORKDIR /out/usr/lib/xen/bin/
-RUN strip * || :
+#RUN strip * || :
 RUN if [ "$(uname -m)" = "x86_64" ]; then rm -f qemu-system-i386 && ln -s "qemu-system-$(uname -m)" qemu-system-i386 ;fi
 
 COPY --from=uefi-build / /uefi/
