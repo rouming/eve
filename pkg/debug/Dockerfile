@@ -15,8 +15,8 @@ ENV PKGS openssl openssh-client openssh-server tini util-linux ca-certificates p
 
 # These packages are not available on the riscv arch, so I have no idea how
 # deliver those, but still install them on other archs.
-ENV PKGS_amd64 procps tar dmidecode iptables dhcpcd
-ENV PKGS_arm64 procps tar dmidecode iptables dhcpcd
+ENV PKGS_amd64 procps tar dmidecode iptables dhcpcd gawk
+ENV PKGS_arm64 procps tar dmidecode iptables dhcpcd gawk
 
 RUN eve-alpine-deploy.sh
 
