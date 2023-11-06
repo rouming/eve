@@ -116,6 +116,7 @@ func getQemuStatus(socket string) (types.SwState, error) {
 			time.Sleep(time.Second)
 			continue
 		}
+		logrus.Errorf("[attempt %d] getQemuStatus: JSON received '%s'", attempt, raw)
 
 		var result struct {
 			ID     string `json:"id"`
