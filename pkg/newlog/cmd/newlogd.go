@@ -19,6 +19,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 	"unicode"
@@ -67,6 +68,8 @@ const (
 	maxToSendMbytes uint32 = 2048 // default 2 Gbytes for log files remains on disk
 
 	ansi = "[\u0009\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
+
+	defaultLogLevel = "info" // Default log level
 )
 
 var (
@@ -105,6 +108,22 @@ var (
 	domainUUID *base.LockedStringMap // App log, from domain-id to appDomain
 	// syslog/kmsg priority string definition
 	priorityStr = [8]string{"emerg", "alert", "crit", "err", "warning", "notice", "info", "debug"}
+	priorityNum = map[string]uint32{
+		"emerg":   0,
+		"alert":   1,
+		"crit":    2,
+		"err":     3,
+		"warning": 4,
+		"notice":  5,
+		"info":    6,
+		"debug":   7,
+	}
+	// Default log levels for some subsystems. Variables are updated and used
+	// from different goroutines, so in order to push the changes ouf of the
+	// goroutines local caches and correctly observe changed values in another
+	// goroutine sync/atomic synchronization is used. You've been warned.
+	syslogPrio = priorityNum[defaultLogLevel]
+	kernelPrio = priorityNum[defaultLogLevel]
 )
 
 // for app Domain-ID mapping into UUID and DisplayName
@@ -152,6 +171,16 @@ type devMeta struct {
 	uuid     string
 	imageVer string
 	curPart  string
+}
+
+// parse log level string
+func parseLogLevel(loglevel string) uint32 {
+	prio, ok := priorityNum[loglevel]
+	if !ok {
+		prio = priorityNum[defaultLogLevel]
+	}
+
+	return prio
 }
 
 // newlogd program
@@ -499,8 +528,25 @@ func handleGlobalConfigImp(ctxArg interface{}, key string, statusArg interface{}
 		if limitGzipFilesMbyts > uint32(persistMbytes/10) {
 			limitGzipFilesMbyts = uint32(persistMbytes / 10)
 		}
+
+		// parse syslog log level
+		syslogPrioStr := gcp.GlobalValueString(types.SyslogLogLevel)
+		atomic.StoreUint32(&syslogPrio, parseLogLevel(syslogPrioStr))
+
+		// parse kernel log level
+		kernelPrioStr := gcp.GlobalValueString(types.KernelLogLevel)
+		atomic.StoreUint32(&kernelPrio, parseLogLevel(kernelPrioStr))
 	}
 	log.Tracef("handleGlobalConfigModify done for %s, fastupload enabled %v", key, enableFastUpload)
+}
+
+func checkMsgPriority(entry inputEntry, cfgPrio uint32) bool {
+	pri, ok := priorityNum[entry.severity]
+	if !ok {
+		pri, ok = priorityNum[defaultLogLevel]
+	}
+
+	return pri <= cfgPrio
 }
 
 // getKmessages - goroutine to get from /dev/kmsg
@@ -515,12 +561,15 @@ func getKmessages(loggerChan chan inputEntry) {
 	for msg := range kmsg {
 		entry := inputEntry{
 			source:    "kernel",
-			severity:  "info",
+			severity:  defaultLogLevel,
 			content:   msg.Message,
 			timestamp: msg.Timestamp.Format(time.RFC3339Nano),
 		}
 		if msg.Priority >= 0 {
 			entry.severity = priorityStr[msg.Priority%8]
+		}
+		if !checkMsgPriority(entry, atomic.LoadUint32(&kernelPrio)) {
+			continue
 		}
 
 		logmetrics.NumKmessages++
@@ -1606,6 +1655,9 @@ func getSyslogMsg(loggerChan chan inputEntry) {
 		entry, err := newMessage(buf, n, sysfmt)
 		if err != nil {
 			log.Error(err)
+			continue
+		}
+		if !checkMsgPriority(entry, atomic.LoadUint32(&syslogPrio)) {
 			continue
 		}
 
