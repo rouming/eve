@@ -256,6 +256,10 @@ const (
 	DefaultLogLevel GlobalSettingKey = "debug.default.loglevel"
 	// DefaultRemoteLogLevel global setting key
 	DefaultRemoteLogLevel GlobalSettingKey = "debug.default.remote.loglevel"
+	// SyslogLogLevel global setting key
+	SyslogLogLevel GlobalSettingKey = "debug.syslog.loglevel"
+	// KernelLogLevel global setting key
+	KernelLogLevel GlobalSettingKey = "debug.kernel.loglevel"
 
 	// XXX Temporary flag to disable RFC 3442 classless static route usage
 	DisableDHCPAllOnesNetMask GlobalSettingKey = "debug.disable.dhcp.all-ones.netmask"
@@ -874,6 +878,8 @@ func NewConfigItemSpecMap() ConfigItemSpecMap {
 	configItemSpecMap.AddStringItem(SSHAuthorizedKeys, "", blankValidator)
 	configItemSpecMap.AddStringItem(DefaultLogLevel, "info", parseLevel)
 	configItemSpecMap.AddStringItem(DefaultRemoteLogLevel, "info", parseLevel)
+	configItemSpecMap.AddStringItem(SyslogLogLevel, "info", parseLevel)
+	configItemSpecMap.AddStringItem(KernelLogLevel, "info", parseLevel)
 
 	// Add Agent Settings
 	configItemSpecMap.AddAgentSettingStringItem(LogLevel, "info", parseLevel)
