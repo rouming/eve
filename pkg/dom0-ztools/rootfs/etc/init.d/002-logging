@@ -6,24 +6,28 @@ if test -f /proc/vmcore; then
 fi
 
 # Create 'memory' and 'cpuset' controllers for 'memlogd' cgroup
-mkdir -p /sys/fs/cgroup/memory/eve/memlogd
-mkdir -p /sys/fs/cgroup/cpuset/eve/memlogd
+mkdir -p /sys/fs/cgroup/memory/eve/services/memlogd
+mkdir -p /sys/fs/cgroup/cpuset/eve/services/memlogd
 
-echo "MEMLOGD LS"
-ls -la /sys/fs/cgroup/cpuset/eve/memlogd
+#echo "MEMLOGD LS"
+#ls -la /sys/fs/cgroup/cpuset/eve/memlogd
 
 # We bind 'memlogd' (and all its threads to be exact) to cpu0 in
-# order to free other CPUs (dedicated to VMs) from any noise.
-echo 0 > /sys/fs/cgroup/cpuset/eve/memlogd/cpuset.mems
-echo "MEMLOGD CPUSET.MEMS: " $?
-echo 0 > /sys/fs/cgroup/cpuset/eve/memlogd/cpuset.cpus
-echo "MEMLOGD CPUSET.CPUS: " $?
+# order to free other CPUs (dedicated to VMs) from any interference.
+#echo 0 > /sys/fs/cgroup/cpuset/eve/memlogd/cpuset.mems
+#echo "MEMLOGD CPUSET.MEMS: " $?
+#echo 0 > /sys/fs/cgroup/cpuset/eve/memlogd/cpuset.cpus
+#echo "MEMLOGD CPUSET.CPUS: " $?
 
-echo $$ > /sys/fs/cgroup/cpuset/eve/memlogd/tasks
-echo "MEMLOGD CPUSET TASKS: " $?
+#echo $$ > /sys/fs/cgroup/cpuset/eve/memlogd/tasks
+#echo "MEMLOGD CPUSET TASKS: " $?
 
-# Start 'memlogd' in the cgroup
-echo $$ > /sys/fs/cgroup/memory/eve/memlogd/tasks
+# Start 'memlogd' in the memory cgroup
+echo $$ > /sys/fs/cgroup/memory/eve/services/memlogd/tasks
 echo "MEMLOGD MEMORY TASKS: " $?
+
+# Start 'memlogd' in the cpuset cgroup
+echo $$ > /sys/fs/cgroup/cpuset/eve/services/memlogd/tasks
+echo "MEMLOGD CPUSET TASKS: " $?
 
 /usr/bin/memlogd -daemonize -max-line-len 8192
