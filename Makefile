@@ -43,8 +43,8 @@ IMG_FORMAT=qcow2
 ifdef LIVE_UPDATE
 # For live updates we support read-write FS, like ext4
 ROOTFS_FORMAT=ext4
-# And generate tar faster
-LIVE_FAST=1
+# And generate tar faster with only modified files
+LIVE_FAST=2
 else
 # Filesystem type for rootfs image
 ROOTFS_FORMAT?=squash
@@ -308,11 +308,14 @@ LINUXKIT_OPTS=$(if $(strip $(EVE_HASH)),--hash) $(EVE_HASH) $(if $(strip $(EVE_R
 LINUXKIT_PKG_TARGET=build
 LINUXKIT_PATCHES_DIR=tools/linuxkit/patches
 
-ifdef LIVE_FAST
 # Check the makerootfs.sh and the linuxkit tool invocation, the --input-tar
-# parameter specifically. This will create a new tar based on the old one
-# (already generated), which speeds tar generation up a bit.
+# and --modified-only parameters specifically. This will create a new tar
+# based on the old one (already generated), which speeds tar generation up
+# a bit.
+ifeq ($(LIVE_FAST),1)
 UPDATE_TAR=-u
+else ifeq ($(LIVE_FAST),2)
+UPDATE_TAR=-u -m
 endif
 
 RESCAN_DEPS=FORCE

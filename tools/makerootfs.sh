@@ -48,7 +48,7 @@ do_tar() {
   else
     # sbom disabled for now; will be re-enabled later
     # shellcheck disable=SC2086
-    linuxkit build --no-sbom --docker ${ARCHARG} --o "${tarfile}.new" --input-tar "${tarfile}"  "$ymlfile"
+    linuxkit build --no-sbom --docker ${ARCHARG} --o "${tarfile}.new" ${modifiedonly} --input-tar "${tarfile}"  "$ymlfile"
     newmd5=$(md5sum "${tarfile}.new" | awk '{print $1}')
     oldmd5=$(md5sum "${tarfile}" | awk '{print $1}')
     # Don't touch the modification time if files are equal. Crucial for Makefile.
@@ -127,8 +127,8 @@ help() {
 mode="$1"
 shift
 
-unset tarfile imgfile arch format ymlfile execidr updatetar
-while getopts "t:i:a:f:y:d:uh" o
+unset tarfile imgfile arch format ymlfile execidr updatetar modifiedonly
+while getopts "t:i:a:f:y:d:umh" o
 do
   case $o in
     t)
@@ -151,6 +151,9 @@ do
       ;;
     u)
       updatetar=1
+      ;;
+    m)
+      modifiedonly="--modified-only"
       ;;
     h)
       help
