@@ -2496,6 +2496,13 @@ func parseConfigItems(ctx *getconfigContext, config *zconfig.EdgeDevConfig,
 			ctx.zedagentCtx.gcpMaintenanceMode = newMaintenanceMode
 			mergeMaintenanceMode(ctx.zedagentCtx)
 		}
+		oldNTPSourcesInterval :=
+			oldGlobalConfig.GlobalValueInt(types.NTPSourcesInterval)
+		newNTPSourcesInterval :=
+			newGlobalConfig.GlobalValueInt(types.NTPSourcesInterval)
+		if oldNTPSourcesInterval != newNTPSourcesInterval {
+			updateNTPSourcesTimer(ctx, newNTPSourcesInterval)
+		}
 
 		pub := ctx.zedagentCtx.pubGlobalConfig
 		err := pub.Publish("global", *gcPtr)

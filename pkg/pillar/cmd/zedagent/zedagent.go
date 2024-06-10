@@ -110,6 +110,7 @@ type zedagentContext struct {
 	triggerDeviceInfo         chan<- destinationBitset
 	triggerHwInfo             chan<- destinationBitset
 	triggerLocationInfo       chan<- destinationBitset
+	triggerNTPSourcesInfo     chan<- destinationBitset
 	triggerObjectInfo         chan<- infoForObjectKey
 	zbootRestarted            bool // published by baseosmgr
 	subOnboardStatus          pubsub.Subscription
@@ -330,11 +331,13 @@ func Run(ps *pubsub.PubSub, loggerArg *logrus.Logger, logArg *base.LogObject, ar
 	triggerDeviceInfo := make(chan destinationBitset, 1)
 	triggerHwInfo := make(chan destinationBitset, 1)
 	triggerLocationInfo := make(chan destinationBitset, 1)
+	triggerNTPSourcesInfo := make(chan destinationBitset, 1)
 	triggerObjectInfo := make(chan infoForObjectKey, 1)
 	zedagentCtx.flowlogQueue = flowlogQueue
 	zedagentCtx.triggerDeviceInfo = triggerDeviceInfo
 	zedagentCtx.triggerHwInfo = triggerHwInfo
 	zedagentCtx.triggerLocationInfo = triggerLocationInfo
+	zedagentCtx.triggerNTPSourcesInfo = triggerNTPSourcesInfo
 	zedagentCtx.triggerObjectInfo = triggerObjectInfo
 
 	// Initialize all zedagent publications.
@@ -490,6 +493,11 @@ func Run(ps *pubsub.PubSub, loggerArg *logrus.Logger, logArg *base.LogObject, ar
 	go locationTimerTask(zedagentCtx, handleChannel, triggerLocationInfo)
 	getconfigCtx.locationCloudTickerHandle = <-handleChannel
 	getconfigCtx.locationAppTickerHandle = <-handleChannel
+
+	// start the NTP sources reporting task
+	log.Functionf("Creating %s at %s", "ntpTimerTask", agentlog.GetMyStack())
+	go ntpSourcesTimerTask(zedagentCtx, handleChannel, triggerNTPSourcesInfo)
+	getconfigCtx.ntpSourcesTickerHandle = <-handleChannel
 
 	//trigger channel for localProfile state machine
 	getconfigCtx.sideController.localProfileTrigger = make(chan Notify, 1)
@@ -2008,6 +2016,15 @@ func triggerPublishLocationToDest(ctxPtr *zedagentContext, dest destinationBitse
 	ctxPtr.triggerLocationInfo <- dest
 }
 
+func triggerPublishNTPSourcesToDest(ctxPtr *zedagentContext, dest destinationBitset) {
+	if ctxPtr.getconfigCtx.ntpSourcesTickerHandle == nil {
+		// NTP sources reporting task is not yet running.
+		return
+	}
+	log.Function("Triggered publishNTPSources")
+	ctxPtr.triggerNTPSourcesInfo <- dest
+}
+
 func triggerPublishAllInfo(ctxPtr *zedagentContext, dest destinationBitset) {
 
 	log.Function("Triggered PublishAllInfo")
@@ -2075,6 +2092,7 @@ func triggerPublishAllInfo(ctxPtr *zedagentContext, dest destinationBitset) {
 			}
 		}
 		triggerPublishLocationToDest(ctxPtr, dest)
+		triggerPublishNTPSourcesToDest(ctxPtr, dest)
 	}()
 }
 
