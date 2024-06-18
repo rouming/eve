@@ -15,8 +15,6 @@ import (
 
 	chrony "github.com/facebook/time/ntp/chrony"
 	"github.com/lf-edge/eve-api/go/info"
-	"github.com/lf-edge/eve/pkg/pillar/flextimer"
-	"github.com/lf-edge/eve/pkg/pillar/types"
 	"google.golang.org/protobuf/proto"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -26,16 +24,18 @@ const (
 	unixChronydPath = "/run/chrony/chronyd.sock"
 )
 
+var prevInfoNTPSourcesMap map[destinationBitset]*info.ZInfoNTPSources
+
 // Run a periodic post of the NTP sources information.
 func ntpSourcesTimerTask(ctx *zedagentContext, handleChannel chan interface{},
 	triggerNTPSourcesInfo chan destinationBitset) {
 
+	prevInfoNTPSourcesMap = make(map[destinationBitset]*info.ZInfoNTPSources)
+
 	// Ticker for periodic publishing NTP sources to the controller.
-	globalInterval := ctx.globalConfig.GlobalValueInt(types.NTPSourcesInterval)
-	interval := time.Duration(globalInterval) * time.Second
-	max := float64(interval)
-	min := max * 0.3
-	ticker := flextimer.NewRangeTicker(time.Duration(min), time.Duration(max))
+	// The period is rather small, because NTP sources are published
+	// if something was really changed. See the @publishNTPSourcesToDest
+	ticker := time.NewTicker(10 * time.Second)
 
 	// Return handles to the caller.
 	handleChannel <- ticker
@@ -59,23 +59,6 @@ func ntpSourcesTimerTask(ctx *zedagentContext, handleChannel chan interface{},
 	}
 }
 
-// Called when globalConfig changes.
-// Assumes that the caller has verifier that the interval has changed.
-func updateNTPSourcesTimer(ctx *getconfigContext, globalInterval uint32) {
-	if ctx.ntpSourcesTickerHandle == nil {
-		log.Warnf("updateNTPSourcesTimer: ticker is still nil")
-		return
-	}
-	interval := time.Duration(globalInterval) * time.Second
-	log.Functionf("updateNTPSourcesTimer: interval change to %v", interval)
-	max := float64(interval)
-	min := max * 0.3
-	flextimer.UpdateRangeTicker(ctx.ntpSourcesTickerHandle,
-		time.Duration(min), time.Duration(max))
-	// Force an immediate timeout since timer could have decreased.
-	flextimer.TickNow(ctx.ntpSourcesTickerHandle)
-}
-
 func publishNTPSources(ctx *zedagentContext, wdName string,
 	dest destinationBitset) {
 	info := getNTPSourcesInfo(ctx)
@@ -89,11 +72,44 @@ func publishNTPSources(ctx *zedagentContext, wdName string,
 		warningTime, errorTime)
 }
 
+func ntpSourcesSame(info *info.ZInfoNTPSources,
+	dest destinationBitset) bool {
+
+	prev, cached := prevInfoNTPSourcesMap[dest]
+	prevInfoNTPSourcesMap[dest] = info
+	if !cached {
+		// First entry
+		return false
+	}
+	if len(prev.Sources) != len(info.Sources) {
+		// Set of sources has been changed
+		return false
+	}
+	for i, source := range info.Sources {
+		prevSource := prev.Sources[i]
+		if prevSource.State != source.State ||
+			prevSource.Mode != source.Mode ||
+			prevSource.Reachable != source.Reachable ||
+			prevSource.Hostname != source.Hostname ||
+			prevSource.SrcAddr != source.SrcAddr ||
+			prevSource.DstAddr != source.DstAddr {
+			// Some fields have been changed
+			return false
+		}
+	}
+	// Same
+	return true
+}
+
 func publishNTPSourcesToDest(ctx *zedagentContext,
 	infoNTPSources *info.ZInfoNTPSources, dest destinationBitset) {
 
 	// TODO: we don't support LPS
 	if (dest &^ LPSDest) == 0 {
+		return
+	}
+	if ntpSourcesSame(infoNTPSources, dest) {
+		// Nothing was changed, so just return
 		return
 	}
 	infoMsg := &info.ZInfoMsg{
@@ -120,9 +136,10 @@ func publishNTPSourcesToDest(ctx *zedagentContext,
 	const withNetTrace = false
 	key := "ntpsources:" + devUUID.String()
 
-	// Even for the controller destination we can't stall the queue on error,
-	// because this is recurring call, so set @forcePeriodic to true
-	forcePeriodic := true
+	// This is not a recurring call, so the packet should be delivered and in
+	// case of an error the queue stalled and packet send repeated, thus set
+	// @forcePeriodic to false.
+	forcePeriodic := false
 	queueInfoToDest(ctx, dest, key, buf, size, bailOnHTTPErr, withNetTrace,
 		forcePeriodic, info.ZInfoTypes_ZiNTPSources)
 }
