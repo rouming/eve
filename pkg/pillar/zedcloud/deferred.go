@@ -53,6 +53,11 @@ type deferredItem struct {
 const longTime1 = time.Hour * 24
 const longTime2 = time.Hour * 48
 
+// Used for exponential backoff when queue is active
+const shortTimeMin = 1  * time.Minute
+const shortTimeMax = 15 * time.Minute
+const randomFactor = 0.3
+
 // DeferredContext is part of ZedcloudContext
 type DeferredContext struct {
 	deferredItems          []*deferredItem
@@ -354,18 +359,18 @@ func (ctx *DeferredContext) KickTimerNow() {
 // within a minute (reasonable time) to avoid an avalanche of messages
 // once connection being restored to the controller.
 func (ctx *DeferredContext) KickTimerWithinMinute() {
-	// This re-configures the ticker, but startTimer() will be called
-	// again once queue is drained.
-	ctx.Ticker.UpdateRangeTicker(0, time.Minute)
+	// This re-configures the interval start for the ticker, keeping
+	// the interval end same, which guarantees we backoff as usual.
+	// Once queue is drained `startTimer()` will be called once again
+	// and ticker configuration restored to the initial one.
+	ctx.Ticker.UpdateExpTicker(time.Second, shortTimeMax, randomFactor)
 }
 
 // Try every minute backoff to every 15 minutes
 func startTimer(log *base.LogObject, ctx *DeferredContext) {
 
 	log.Functionf("startTimer()")
-	min := 1 * time.Minute
-	max := 15 * time.Minute
-	ctx.Ticker.UpdateExpTicker(min, max, 0.3)
+	ctx.Ticker.UpdateExpTicker(shortTimeMin, shortTimeMax, randomFactor)
 }
 
 func stopTimer(log *base.LogObject, ctx *DeferredContext) {
