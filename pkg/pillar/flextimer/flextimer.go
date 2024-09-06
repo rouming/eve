@@ -143,13 +143,13 @@ func flexTicker(config <-chan flexTickerConfig, tick chan<- time.Time) {
 			} else {
 				base = int64(c.maxTime)
 			}
+			// Make sure we don't get negative
+			if base < noise/2 {
+				base = noise/2
+			}
 			// This generates random number in closed interval
 			// [base - noise/2, base + noise/2].
 			r := base + r1.Int63n(noise+1) - noise/2
-			if r < 0 {
-				// Make sure we don't get negative
-				r = 0
-			}
 			d = time.Duration(r)
 		} else {
 			r := r1.Int63n(int64(c.maxTime-c.minTime)) + int64(c.minTime)
