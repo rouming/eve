@@ -30,8 +30,8 @@ import (
 // If `ignoreErr` is not set and an error occurs during
 // the send, then queue processing is interrupted. The
 // queue process will be repeated by the timer, see the
-// `startTimer()` routine. `KickTimer` can be called in
-// order to restart queue processing immediately.
+// `startTimer()` routine. `KickTimerNow` can be called
+// in order to restart queue processing immediately.
 //
 // The deferred item can be removed from the queue if
 // the send failed:
@@ -321,7 +321,7 @@ func (ctx *DeferredContext) SetDeferred(
 	}
 
 	// Run to a completion from the processing task
-	ctx.KickTimer()
+	ctx.KickTimerNow()
 }
 
 // RemoveDeferred removes key from deferred items if exists
@@ -345,9 +345,18 @@ func (ctx *DeferredContext) RemoveDeferred(key string) {
 	}
 }
 
-// KickTimer kicks the timer for immediate execution
-func (ctx *DeferredContext) KickTimer() {
+// KickTimerNow kicks the timer for immediate execution
+func (ctx *DeferredContext) KickTimerNow() {
 	ctx.Ticker.TickNow()
+}
+
+// KickTimerWithinMinute kicks the timer for execution in random time
+// within a minute (reasonable time) to avoid an avalanche of messages
+// once connection being restored to the controller.
+func (ctx *DeferredContext) KickTimerWithinMinute() {
+	// This re-configures the ticker, but startTimer() will be called
+	// again once queue is drained.
+	ctx.Ticker.UpdateRangeTicker(0, time.Minute)
 }
 
 // Try every minute backoff to every 15 minutes
